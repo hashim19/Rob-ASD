@@ -1,0 +1,8 @@
+spafe
+torch
+torchvision
+torchaudio
+pandas
+librosa
+tqdm
+matplotlib
