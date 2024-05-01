@@ -1,0 +1,10 @@
+venv
+features_out
+*.png
+*.egg-info/
+*.egg
+__pycache__/
+*.py[cod]
+*.pkl
+**/*.pkl
+gmm_512_LA_*
