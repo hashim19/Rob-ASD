@@ -1,0 +1,15 @@
+[94m-------------------------------------------------[0m
+[94m---  Start program 2024-01-30 15:39:19.137349 ---[0m
+[94m-------------------------------------------------[0m
+[94mLoad module: config_auto[0m
+[94mLoad module: model[0m
+[94m------------------------------------------------------------[0m
+[94m---  Loading dataset toy_eval 2024-01-30 15:39:19.620785 ---[0m
+[94m------------------------------------------------------------[0m
+[91mCannot access /home/alhashim/Audio_Spoof_Detection/LFCC-LCNN/project/baseline_LA/../DATA/toy_example/eval[0m
+[91mNo input features found after scannning[0m
+[91mPlease check ['/home/alhashim/Audio_Spoof_Detection/LFCC-LCNN/project/baseline_LA/../DATA/toy_example/eval'][0m
+[91mThey should contain all files in file list[0m
+[91mPlease also check filename extentions ['.flac'][0m
+[91mThey should be correctly specified[0m
+[91mError: Failed to read input features[0m
