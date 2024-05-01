@@ -1,0 +1,8 @@
+-e ./Feature_Library/CQCC
+numpy
+pandas
+spafe
+numba
+librosa
+pycave
+torch==1.13.1
