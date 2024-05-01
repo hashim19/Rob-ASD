@@ -15,9 +15,13 @@ The repository is structured as follows:
 
 | Folder | Description                                       |
 |--------|---------------------------------------------------|
+|__Audio Spoof Detection Systems__|
 | `/ASD_ML/` | Contains code for CQCC-GMM and LFCC-GMM systems|
 | `/LFCC-LCNN/` | Contains code for LFCC-LCNN system|
 | `/AIR-ASVspoof/` | Contains code for OC-Softmax system|
 | `/RawNet2/` | Contains code for RawNet2 system|
 | `/RawGAT-ST-antispoofing/` | Contains code for RawGAT system|
 | `/aasist/` | Contains code for AASIST system|
+|__Evaluation__|
+| `/Score_Files/` | Contains already evaluated score files|
+
