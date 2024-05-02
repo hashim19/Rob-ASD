@@ -52,7 +52,6 @@ Python dependency:
 2. virtualenv
 
 ### ASD_ML
-, , and then 
 ```
 # Go inside ASD_ML directory
 cd ASD_ML
@@ -69,6 +68,7 @@ pip3 install -r requirements.txt
 You may use [Conda](https://docs.conda.io/en/latest/miniconda.html) and [./env.yml](./env.yml) to build the Python dependency environment: 
 
 ```
+Go inside LFCC-LCNN directory
 cd LFCC-LCNN
 # create environment
 $: conda env create -f env.yml
