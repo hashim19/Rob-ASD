@@ -45,14 +45,38 @@ python3 evaluate_tDCF_asvspoof19.py --protocol_filename=babble_10_10_5_protocol.
 
 ## Installation
 
+### Requirement
+Linux with GPU support, [Conda](https://docs.conda.io/en/latest/miniconda.html), and Python
+Python dependency:
+1. Python 3 (test on python3.9)
+2. virtualenv
+
 ### ASD_ML
-Go inside ASD_ML directory, create a virtual environment, activate virtual environment, and then install the required libraries
+, , and then 
 ```
+# Go inside ASD_ML directory
 cd ASD_ML
+
+# create a virtual environment, activate virtual environment****
 python3 -m venv venv
 source venv/bin/activate
+
+# install the required libraries
 pip3 install -r requirements.txt
 ```
+
+### LFCC-LCNN
+You may use [Conda](https://docs.conda.io/en/latest/miniconda.html) and [./env.yml](./env.yml) to build the Python dependency environment: 
+
+```
+cd LFCC-LCNN
+# create environment
+$: conda env create -f env.yml
+
+# load environment (whose name is pytorch-asvspoof2021)
+$: conda activate pytorch-asvspoof2021
+```
+
 
 
 
