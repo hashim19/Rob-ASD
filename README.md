@@ -43,6 +43,21 @@ For example, if you want to reproduce the results for LFCC-GMM in the presence o
 python3 evaluate_tDCF_asvspoof19.py --protocol_filename=babble_10_10_5_protocol.txt --score_filename=scores-lfcc-gmm-512-babble-10-10-5-asvspoof19-LA-labels.txt --score_file_has_keys
 ```
 
+## Installation
+
+### ASD_ML
+Go inside ASD_ML directory, create a virtual environment, activate virtual environment, and then install the required libraries
+```
+cd ASD_ML
+python3 -m venv venv
+source venv/bin/activate
+pip3 install -r requirements.txt
+```
+
+
+
+
+
 
 
 
