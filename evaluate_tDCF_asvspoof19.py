@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
+import argparse
 import eval_metrics as em
 import matplotlib.pyplot as plt
 
@@ -33,6 +34,8 @@ def gen_score_file(score_file, protocl_file, out_dir='out_dir'):
     score_df.to_csv(out_dir + out_file, sep=" ", header=None, index=False)
 
 def compute_equal_error_rate(cm_score_file):
+
+    print(cm_score_file)
 
     # Load CM scores
     cm_data = np.genfromtxt(cm_score_file, dtype=str)
@@ -81,30 +84,24 @@ def compute_equal_error_rate(cm_score_file):
 
 if __name__ == "__main__":
 
-    Score_file_has_labels = True
-    score_file_dir = 'Score_Files/'
+    parser = argparse.ArgumentParser(description='Evaluation script')
 
-    # protocl_file = score_file_dir + 'Protocol_ASV_RT_0_9.txt'
-    # protocl_file = score_file_dir + 'street_0_0_5_protocol.txt'
-    # protocl_file = score_file_dir + 'recompression_protocol_320k.txt'
-    # protocl_file = score_file_dir + 'resample_44100.txt'
-    protocl_file = score_file_dir + 'low_pass_filt_7000_protocol.txt'
+    parser.add_argument('--score_file_has_keys', action='store_true', help='if score file has keys')
+    parser.add_argument('--score_file_dir', type=str, default='Score_Files/', help='Score File directory')
+    parser.add_argument('--protocol_filename', type=str, default='ASVspoof2019.LA.cm.eval.trl.txt', help='Path to the protocol file')
+    parser.add_argument('--score_filename', type=str, default='scores-lfcc-gmm-512-asvspoof19-LA.txt', help='Path to the score file')
 
-    # score_file = score_file_dir + 'log_eval_ASVspoof2019_LA_eval_score.txt'
-    # score_file = score_file_dir + 'scores-cqcc-gmm-512-filtering-7000-asvspoof19-LA.txt'
-    # score_file = score_file_dir + 'LFCC_LCNN_eval_low_pass_filt_7000_score.txt'
-    # score_file = score_file_dir + 'RawNet2_low_pass_filt_7000_eval_CM_scores.txt'
+    args = parser.parse_args()
 
-    gen_score_file = score_file_dir + 'scores-cqcc-gmm-512-filtering-7000-asvspoof19-LA-labels.txt'
-    # score_file = 'score.txt'
+    protocol_file_path = args.score_file_dir + args.protocol_filename
+    score_file_path = args.score_file_dir + args.score_filename
 
-    if Score_file_has_labels:
-
-        compute_equal_error_rate(gen_score_file)
-
+    if args.score_file_has_keys:
+        compute_equal_error_rate(score_file_path)
+    
     else:
-
-        gen_score_file(score_file, protocl_file, out_dir=score_file_dir)
+        gen_score_file(score_file_path, protocol_file_path, out_dir=args.score_file_dir)
+        compute_equal_error_rate(score_file_path.split('.')[0] + '-labels.txt')
 
 
 
