@@ -53,10 +53,10 @@ Python dependency:
 
 ### ASD_ML
 ```
-# Go inside ASD_ML directory
+# Go inside the ASD_ML directory
 cd ASD_ML
 
-# create a virtual environment, activate virtual environment****
+# create a virtual environment and activate the virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
@@ -68,7 +68,7 @@ pip3 install -r requirements.txt
 You may use [Conda](https://docs.conda.io/en/latest/miniconda.html) and [./env.yml](./env.yml) to build the Python dependency environment: 
 
 ```
-Go inside LFCC-LCNN directory
+Go inside the LFCC-LCNN directory
 cd LFCC-LCNN
 # create environment
 $: conda env create -f env.yml
@@ -76,6 +76,29 @@ $: conda env create -f env.yml
 # load environment (whose name is pytorch-asvspoof2021)
 $: conda activate pytorch-asvspoof2021
 ```
+
+### OC-Softmax
+```
+# Go inside the AIR-ASVspoof directory
+cd AIR-ASVspoof
+
+# create a virtual environment and activate the virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# install the required libraries
+pip3 install -r requirements.txt
+```
+
+### RawNet2
+create and activate a conda environment, and install the requirements :
+```
+conda create --name rawnet_anti_spoofing python=3.6.10
+$ conda activate rawnet_anti_spoofing
+$ conda install pytorch=1.4.0 -c pytorch
+$ pip install -r requirements.txt
+```
+
 
 
 
