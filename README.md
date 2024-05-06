@@ -26,7 +26,7 @@ The repository is structured as follows:
 | `/Score_Files/` | Contains protocol files and evaluated score files|
 
 ## Database
-This repository used two databases
+This repository uses two databases
 - ASVSpoof 2019 (This database can be downloaded from the [ASVSpoof website] (https://www.asvspoof.org/))
 - ASVSpoof Laundered Database (This database can be downloaded from the [ISSFLab website] (https://issf.umd.umich.edu/downloads/data))
 
