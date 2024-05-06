@@ -94,10 +94,31 @@ pip3 install -r requirements.txt
 create and activate a conda environment, and install the requirements :
 ```
 conda create --name rawnet_anti_spoofing python=3.6.10
-$ conda activate rawnet_anti_spoofing
-$ conda install pytorch=1.4.0 -c pytorch
-$ pip install -r requirements.txt
+conda activate rawnet_anti_spoofing
+conda install pytorch=1.4.0 -c pytorch
+pip install -r requirements.txt
 ```
+
+### RawGAT-ST
+create and activate a conda environment, and install the requirements :
+```
+conda create --name RawGAT_ST_anti_spoofing python=3.8.8
+conda activate RawGAT_ST_anti_spoofing
+conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia
+pip install -r requirements.txt
+```
+
+### AASIST
+```
+# Go inside the aasist directory
+cd aasist
+
+# create a virtual environment and activate the virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# install the required libraries
+pip3 install -r requirements.txt
 
 
 
