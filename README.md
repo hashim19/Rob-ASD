@@ -43,15 +43,15 @@ For example, if you want to reproduce the results for LFCC-GMM in the presence o
 python3 evaluate_tDCF_asvspoof19.py --protocol_filename=babble_10_10_5_protocol.txt --score_filename=scores-lfcc-gmm-512-babble-10-10-5-asvspoof19-LA-labels.txt --score_file_has_keys
 ```
 
-## Installation
-
-### Requirement
+## Requirement
 Linux with GPU support, [Conda](https://docs.conda.io/en/latest/miniconda.html), and Python
 Python dependency:
 1. Python 3 (test on python3.9)
 2. virtualenv
 
-### ASD_ML
+## ASD_ML
+
+### Installation
 ```
 # Go inside the ASD_ML directory
 cd ASD_ML
@@ -64,7 +64,9 @@ source venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
-### LFCC-LCNN
+## LFCC-LCNN
+
+### Installation
 You may use [Conda](https://docs.conda.io/en/latest/miniconda.html) and [./env.yml](./env.yml) to build the Python dependency environment: 
 
 ```
@@ -77,7 +79,9 @@ $: conda env create -f env.yml
 $: conda activate pytorch-asvspoof2021
 ```
 
-### OC-Softmax
+## OC-Softmax
+
+### Installation
 ```
 # Go inside the AIR-ASVspoof directory
 cd AIR-ASVspoof
@@ -90,7 +94,9 @@ source venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
-### RawNet2
+## RawNet2
+
+### Installation
 create and activate a conda environment, and install the requirements :
 ```
 conda create --name rawnet_anti_spoofing python=3.6.10
@@ -99,7 +105,9 @@ conda install pytorch=1.4.0 -c pytorch
 pip install -r requirements.txt
 ```
 
-### RawGAT-ST
+## RawGAT-ST
+
+### Installation
 create and activate a conda environment, and install the requirements :
 ```
 conda create --name RawGAT_ST_anti_spoofing python=3.8.8
@@ -108,7 +116,9 @@ conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvid
 pip install -r requirements.txt
 ```
 
-### AASIST
+## AASIST
+
+### Installation
 ```
 # Go inside the aasist directory
 cd aasist
