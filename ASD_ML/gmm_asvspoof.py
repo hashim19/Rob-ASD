@@ -177,7 +177,7 @@ def scoring(scores_file, dict_file, features, eval_ndx, eval_folder, audio_ext, 
             logging.info("\t...%d/%d..." % (i+1, len(files)))
 
         # try:
-        Tx = extract_features(eval_folder + file + audio_ext, features=features, feat_root=feat_dir, data_type='eval', cached=features_cached)
+        Tx = extract_features(eval_folder + '/' + file + audio_ext, features=features, feat_root=feat_dir, data_type='eval', cached=features_cached)
         print(i)
         
         extraction_checkpoint = time.time()
