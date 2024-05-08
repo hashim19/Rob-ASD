@@ -66,6 +66,17 @@ pip3 install -r requirements.txt
 
 ### Evaluation
 
+The parameters can be configured through the config file. After setting the configuration parameters, activate the virtual environment.
+```
+source venv/bin/activate
+```
+
+First features are extracted and then the trained Gaussian mixture model is used to generate the score files,
+```
+python3 extract_features.py
+python3 test.py
+```
+
 
 ## LFCC-LCNN
 
