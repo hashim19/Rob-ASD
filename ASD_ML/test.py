@@ -3,22 +3,24 @@ import pandas
 import numpy as np
 import os
 
+import config as config
+
 # configs
-features = 'cqcc'
+features = config.feature_type
 
 # configs - GMM parameters
-ncomp = 512
+ncomp = config.n_comp
 
-processing = '-filtering-7000'
+laundering_param = config.laundering_param
 # processing = '-RT-0-3'
 
 # score file to write
-scores_file = 'scores-' + features + '-gmm-' + str(ncomp) + processing + '-asvspoof19-LA.txt' 
+scores_file = 'scores-' + features + '-gmm-' + str(ncomp) + '-' + laundering_param + '-asvspoof19-LA.txt' 
 
 # bona_path = 'gmm_' + str(ncomp) + '_LA_cqcc' + '_bonafide'
 # spoof_path = 'gmm_' + str(ncomp) + '_LA_cqcc' + '_spoof'
 
-model_dir = 'gmm_512_LA_' + features
+model_dir = 'gmm_' + str(ncomp) + '_LA_' + features
 bona_path = os.path.join(model_dir, 'bonafide', 'gmm_final.pkl')
 spoof_path = os.path.join(model_dir, 'spoof', 'gmm_final.pkl')
 
@@ -26,39 +28,22 @@ dict_file = dict()
 dict_file['bona'] = bona_path
 dict_file['spoof'] = spoof_path
 
-db_folder = '/data/Data/'  # put your database root path here
+db_folder = config.db_folder  # put your database root path here
 
-# laundering_type = 'Reverberation/'
-# laundering = 'AsvSpoofData_2019_RT_0_3/'
-# protocol_pth = 'Protocol_ASV_RT_0_3.txt'
-
-# laundering_type = 'Noise_Addition/'
-# laundering = 'AsvSpoofData_2019_WN_20_20_5/'
-# protocol_pth = 'white_20_20_5_protocol.txt'
-
-# laundering_type = 'Recompression/'
-# laundering = 'recompression_16k'
-# protocol_pth = 'recompression_protocol_16k.txt'
-
-# laundering_type = 'Resampling/'
-# laundering = 'resample_11025/'
-# protocol_pth = 'resample_11025.txt'
-
-laundering_type = 'Filtering/'
-laundering = 'low_pass_filt_7000/'
-protocol_pth = 'low_pass_filt_7000_protocol.txt'
+laundering_type = config.laundering_type
+laundering_param = config.laundering_param
+protocol_pth = config.protocol_filename
 
 # laundering_type = 'Transcoding/'
 # laundering = 'Asvspoof19_40_audio_facebook/'
 # protocol_pth = 'Asvspoof19_40_protocol.csv'
 
-eval_folder = db_folder + laundering_type + laundering
-eval_ndx = db_folder + 'AsvSpoofData_2019_protocols/' + protocol_pth
+eval_folder = os.path.join(db_folder, 'flac')
+eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth)
 
-# feat_dir = '/data/Features/AsvSpoofData_2019_RT_0_9/'
-feat_dir = os.path.join('/data/Features/', laundering_type, laundering)
+feat_dir = os.path.join(config.feat_dir, laundering_type, laundering_param)
 
-audio_ext = '.wav'
+audio_ext = config.audio_ext
 
 # run on ASVspoof 2021 evaluation set
 scoring(scores_file=scores_file, dict_file=dict_file, features=features,

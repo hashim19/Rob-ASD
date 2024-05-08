@@ -10,6 +10,8 @@ from itertools import repeat
 from multiprocessing.pool import Pool
 from functools import partial
 
+import config as config
+
 from feature_functions import extract_cqcc, extract_lfcc, extract_mfcc
 
 
@@ -83,107 +85,68 @@ def extract_features(file, features, data_type='train', data_label='bonafide', f
 
 if __name__ == "__main__":
 
-    db_folder = '/data/Data/'        # '/home/alhashim/Data/AsvSpoofData_2019/train/'
+    db_folder = config.db_folder
 
-    # laundering_type = 'Noise_Addition/'
-    # laundering = 'AsvSpoofData_2019_street_10_10_5/'
-    # protocol_pth = 'street_10_10_5_protocol.txt'
+    laundering_type = config.laundering_type
+    laundering_param = config.laundering_param
+    protocol_pth = config.protocol_filename
 
-    # laundering_type = 'Reverberation/'
-    # laundering = 'AsvSpoofData_2019_RT_0_9/'
-    # protocol_pth = 'Protocol_ASV_RT_0_9.txt'
+    data_dir = os.path.join(db_folder, 'flac')
+    protocol_path = os.path.join(db_folder, 'protocols', protocol_pth)
 
-    # laundering_type = 'Recompression/'
-    # laundering = 'recompression_320k/'
-    # protocol_pth = 'recompression_protocol_320k.txt'
+    Feat_dir = os.path.join(config.feat_dir, laundering_type, laundering_param)
 
-    # laundering_type = 'Resampling/'
-    # laundering = 'resample_11025/'
-    # protocol_pth = 'resample_11025.txt'
+    features = config.feature_type
 
-    laundering_type = 'Filtering/'
-    laundering = 'low_pass_filt_7000/'
-    protocol_pth = 'low_pass_filt_7000_protocol.txt'
-
-    # laundering_type = 'Transcoding/'
-    # laundering = 'Asvspoof19_40_audio_facebook/'
-    # protocol_pth = 'Asvspoof19_40_protocol.csv'
-
-    data_dirs = [db_folder + laundering_type + laundering]  # [db_folder + 'LA/ASVspoof2019_LA_train/flac/', db_folder + 'LA/ASVspoof2019_LA_dev/flac/'] db_folder + 'ASVspoof2019_LA_eval/flac/'
-    protocol_paths = [db_folder + 'AsvSpoofData_2019_protocols/' + protocol_pth]  # [db_folder + 'LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt', db_folder + 'LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trn.txt'] 'ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.eval.trl.txt'
-    # protocol_paths = [db_folder + laundering_type + 'ASVspoof2019_LA_cm_protocols/' + protocol_pth]
-
-    # Feat_dir = 'features_out'
-    Feat_dir = os.path.join('/data/Features/', laundering_type, laundering)
-    # Feat_dir = os.path.join('/data/Features/', laundering)
-
-    audio_ext = '.wav'
-
-    data_types = ['eval']
-
-    data_labels = ['bonafide', 'spoof']
-    # data_labels = ['bonafide']
-
-    features = 'cqcc'
+    audio_ext = config.audio_ext
+    data_types = config.data_types
+    data_labels = config.data_labels
 
 
     # extract features and save them
-    for k, protocol_path in enumerate(protocol_paths):
+    for data_type in data_types:
 
-        for data_type in data_types:
+        if data_type == 'train':
 
-            if data_type == 'train':
-
-                for data_label in data_labels:
-
-                    df = pd.read_csv(protocol_path, sep=' ', header=None)
-                    files = df[df[4] == data_label][1]
-                    print("{} data size is {}".format(data_label, files.shape))
-
-                    for nf, file in enumerate(files):
-                        Tx = extract_features(data_dirs[k] + file + audio_ext, features=features, data_label=data_label,
-                            data_type=data_type, feat_root=Feat_dir, cached=True)
-                        print(Tx.shape)
-
-            if data_type == 'eval':
+            for data_label in data_labels:
 
                 df = pd.read_csv(protocol_path, sep=' ', header=None)
-                # df = pd.read_csv(protocol_path, sep=',', header=None)
-                # df = df.drop(0)
-                print(df)
-                files = df[1].values
+                files = df[df[4] == data_label][1]
+                print("{} data size is {}".format(data_label, files.shape))
 
-                # for nf, file in enumerate(files):
-                #     print(file)
-                #     # if not file == 'LA_E_8070617_RT_0_6':
-                #     # if not ( file == 'LA_E_2800292_RT_0_9' or file == 'LA_E_1573988_RT_0_9' ):
-                #     Tx = extract_features(data_dirs[k] + file + audio_ext, features=features,
-                #         data_type=data_type, feat_root=Feat_dir, cached=True)
-                #     print(Tx.shape)
+                for nf, file in enumerate(files):
+                    Tx = extract_features(data_dir + file + audio_ext, features=features, data_label=data_label,
+                        data_type=data_type, feat_root=Feat_dir, cached=True)
+                    print(Tx.shape)
 
-                print(len(files))
-                args_iter = list(repeat(data_dirs[k] + files + audio_ext, 1))
-                
-                print(*args_iter)
-                # print(len(*args_iter))
+        if data_type == 'eval':
 
-                # kwargs_iter = repeat(dict(features=features, data_type=data_type, feat_root=Feat_dir, cached=True), len(files))
-                # kwargs_iter = dict(features=features, data_type=data_type, feat_root=Feat_dir, cached=True)
-                # print(len(kwargs_iter))
+            print(protocol_path)
 
-                # print(*kwargs_iter)
+            df = pd.read_csv(protocol_path, sep=' ', header=None)
+            # df = pd.read_csv(protocol_path, sep=',', header=None)
+            # df = df.drop(0)
+            # print(df)
+            df = df[df[5] == laundering_param]
+            print(df)
+            files = df[1].values
 
-                with Pool(processes=6) as pool:
+            print(len(files))
+            args_iter = list(repeat(data_dir + '/' + files + audio_ext, 1))
+            
+            print(*args_iter)
 
-                    # starmap_with_kwargs(pool, extract_features, args_iter, kwargs_iter)
+            with Pool(processes=6) as pool:
 
-                    # results = pool.imap(partial(extract_features, features=features, data_type=data_type, feat_root=Feat_dir, cached=True), *args_iter, chunksize=10)
+                # starmap_with_kwargs(pool, extract_features, args_iter, kwargs_iter)
 
-                    for result in pool.imap(partial(extract_features, features=features, data_type=data_type, feat_root=Feat_dir, cached=True), *args_iter, chunksize=1000):
+                # results = pool.imap(partial(extract_features, features=features, data_type=data_type, feat_root=Feat_dir, cached=True), *args_iter, chunksize=10)
 
-                        print(f'Got result: {result.shape}', flush=True)
+                for result in pool.imap(partial(extract_features, features=features, data_type=data_type, feat_root=Feat_dir, cached=True), *args_iter, chunksize=1000):
 
-                    # print(results)
+                    print(f'Got result: {result.shape}', flush=True)
+
+                # print(results)
                     
 
 
