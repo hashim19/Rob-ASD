@@ -66,7 +66,7 @@ pip3 install -r requirements.txt
 
 ### Evaluation
 
-The parameters can be configured through the config file. After setting the configuration parameters, activate the virtual environment.
+The parameters can be configured through the config file. After setting the configuration parameters, activate the virtual environment using the following commands,
 ```
 source venv/bin/activate
 ```
