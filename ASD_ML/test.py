@@ -15,7 +15,9 @@ laundering_param = config.laundering_param
 # processing = '-RT-0-3'
 
 # score file to write
-scores_file = 'scores-' + features + '-gmm-' + str(ncomp) + '-' + laundering_param + '-asvspoof19-LA.txt' 
+scores_file = os.path.join(config.score_dir, 'scores-' + features + '-gmm-' + str(ncomp) + '-' + laundering_param + '-asvspoof19-LA.txt')
+
+print(scores_file)
 
 # bona_path = 'gmm_' + str(ncomp) + '_LA_cqcc' + '_bonafide'
 # spoof_path = 'gmm_' + str(ncomp) + '_LA_cqcc' + '_spoof'

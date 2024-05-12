@@ -137,6 +137,7 @@ def main():
             t_lst = prj_conf.test_list
         else:
             t_lst = nii_list_tool.read_list_from_text(prj_conf.test_list)
+
         test_set = nii_dset.NIIDataSetLoader(
             prj_conf.test_set_name, \
             t_lst, \
