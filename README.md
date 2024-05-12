@@ -93,6 +93,16 @@ $: conda env create -f env.yml
 $: conda activate pytorch-asvspoof2021
 ```
 
+### Evaluation
+
+First, set the database path, laundering type, laundering parameter, and trained model path inside the 01_wrapper_eval.sh script. 
+
+To generate a score file, run
+```
+cd project
+bash 01_wrapper_eval.sh
+```
+
 ## OC-Softmax
 
 ### Installation
