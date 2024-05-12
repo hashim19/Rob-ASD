@@ -35,6 +35,8 @@ bash conda.sh
 cd baseline_LA
 
 # Run evaluation using pretrained model 
-#  bash 02_eval_alternative.sh PATH_TO_WAV_DIR NAME_OF_DATA_SET TRAINED_MODEL
+#  bash 02_eval_alternative.sh PATH_TO_DATABASE_DIR LAUNDERING_TYPE LAUNDERING_PARAM TRAINED_MODEL
 # For details, please check 02_eval_alternative.sh 
-bash 02_eval_alternative.sh /data/Data/Filtering/low_pass_filt_7000 low_pass_filt_7000 __pretrained/trained_network.pt
+# bash 02_eval_alternative.sh /data/Data/Filtering/low_pass_filt_7000 low_pass_filt_7000 __pretrained/trained_network.pt
+
+bash 02_eval_alternative.sh /data/Data/ASVSpoofLaunderedDatabase/ASVSpoofLaunderedDatabase Noise_Addition babble_10 __pretrained/trained_network.pt
