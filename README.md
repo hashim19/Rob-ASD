@@ -103,6 +103,8 @@ cd project
 bash 01_wrapper_eval.sh
 ```
 
+The score file will be generated in Score_Files directory
+
 ## OC-Softmax
 
 ### Installation
