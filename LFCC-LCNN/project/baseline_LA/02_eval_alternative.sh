@@ -74,7 +74,7 @@ printf "%s\n" "${filename_lst[@]}" > ${eval_set_name}.lst
 export TEMP_DATA_NAME=${eval_set_name}
 export TEMP_DATA_DIR=${eval_wav_dir}
 
-score_file_dir=$PWD/../../../Score_Files_New/
+score_file_dir=$PWD/../../../Score_Files/
 
 # echo -e ${score_file_dir}
 

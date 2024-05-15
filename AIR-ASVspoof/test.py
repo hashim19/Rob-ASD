@@ -10,13 +10,18 @@ from tqdm import tqdm
 import eval_metrics as em
 import numpy as np
 
+import config as config
+
 def test_model(feat_model_path, loss_model_path, part, add_loss, device, data_dir, protocol_file_path, feat_path, d_name):
     dirname = os.path.dirname
     basename = os.path.splitext(os.path.basename(feat_model_path))[0]
-    if "checkpoint" in dirname(feat_model_path):
-        dir_path = dirname(dirname(feat_model_path))
-    else:
-        dir_path = dirname(feat_model_path)
+    # if "checkpoint" in dirname(feat_model_path):
+    #     dir_path = dirname(dirname(feat_model_path))
+    # else:
+    #     dir_path = dirname(feat_model_path)
+
+    score_dir = config.score_dir
+
     model = torch.load(feat_model_path, map_location="cuda")
     model = model.to(device)
     loss_model = torch.load(loss_model_path) if add_loss != "softmax" else None
@@ -30,7 +35,7 @@ def test_model(feat_model_path, loss_model_path, part, add_loss, device, data_di
                                 collate_fn=test_set.collate_fn)
     model.eval()
 
-    with open(os.path.join(dir_path, d_name + '_checkpoint_cm_score.txt'), 'w') as cm_score_file:
+    with open(os.path.join(score_dir, d_name + '_checkpoint_cm_score.txt'), 'w') as cm_score_file:
         for i, (lfcc, audio_fn, tags, labels) in enumerate(tqdm(testDataLoader)):
             lfcc = lfcc.unsqueeze(1).float().to(device)
             tags = tags.to(device)
@@ -47,15 +52,18 @@ def test_model(feat_model_path, loss_model_path, part, add_loss, device, data_di
                 score = F.softmax(outputs, dim=1)[:, 0]
 
             for j in range(labels.size(0)):
+                # cm_score_file.write(
+                #     '%s A%02d %s %s\n' % (audio_fn[j], tags[j].data,
+                #                           "spoof" if labels[j].data.cpu().numpy() else "bonafide",
+                #                           score[j].item()))
+
                 cm_score_file.write(
-                    '%s A%02d %s %s\n' % (audio_fn[j], tags[j].data,
-                                          "spoof" if labels[j].data.cpu().numpy() else "bonafide",
-                                          score[j].item()))
+                    '%s %s %s\n' % (audio_fn[j], "spoof" if labels[j].data.cpu().numpy() else "bonafide", score[j].item()))
 
     # eer_cm, min_tDCF = compute_eer_and_tdcf(os.path.join(dir_path, d_name + '_checkpoint_cm_score.txt'),
     #                                         "/home/hashim/PhD/Data/AsvSpoofData_2019/train/")
 
-    eer_cm = compute_eer_and_tdcf(os.path.join(dir_path, d_name + '_checkpoint_cm_score.txt'),
+    eer_cm = compute_eer_and_tdcf(os.path.join(score_dir, d_name + '_checkpoint_cm_score.txt'),
                                             "/home/hashim/PhD/Data/AsvSpoofData_2019/train/")
     return eer_cm
 
@@ -152,36 +160,17 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    db_folder = '/data/Data/'  # put your database root path here
+    db_folder = config.db_folder  # put your database root path here
 
-    # laundering_type = 'Noise_Addition/'
-    # laundering = 'AsvSpoofData_2019_WN_20_20_5'
-    # protocol_pth = 'white_20_20_5_protocol.txt'
-
-    # laundering_type = 'Reverberation/'
-    # laundering = 'AsvSpoofData_2019_RT_0_9'
-    # protocol_pth = 'Protocol_ASV_RT_0_9.txt'
-
-    # laundering_type = 'Recompression/'
-    # laundering = 'recompression_320k'
-    # protocol_pth = 'recompression_protocol_320k.txt'
-
-    # laundering_type = 'Resampling/'
-    # laundering = 'resample_44100'
-    # protocol_pth = 'resample_44100.txt'
-
-    laundering_type = 'Filtering/'
-    laundering = 'low_pass_filt_7000'
-    protocol_pth = 'low_pass_filt_7000_protocol.txt'
+    laundering_type = config.laundering_type
+    laundering_param = config.laundering_param
+    protocol_pth = config.protocol_filename
     
-    eval_folder = db_folder + laundering_type + laundering + '/'
-    # eval_folder = db_folder + laundering_type + laundering + '/' + 'flac/'
-    eval_ndx = db_folder + 'AsvSpoofData_2019_protocols/' + protocol_pth
-    # eval_ndx = db_folder + laundering_type + 'ASVspoof2019_LA_cm_protocols/' + protocol_pth
-    feat_dir = os.path.join('/data/Features/', laundering_type, laundering, 'lfcc_features_airasvspoof')
-    # feat_dir = os.path.join('/data/Features/', laundering, 'lfcc_features_new')
+    eval_folder = os.path.join(db_folder, 'flac')
+    eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
+    Feat_dir = os.path.join(config.feat_dir, laundering_type, laundering_param, 'lfcc_features_airasvspoof')
 
-    test(model_dir, loss, device, data_dir=eval_folder, protocol_path=eval_ndx, feat_dir=feat_dir, data_name = laundering)
+    test(model_dir, loss, device, data_dir=eval_folder, protocol_path=eval_ndx, feat_dir=Feat_dir, data_name = 'OCSoftmax_'+ laundering_type + '_' + laundering_param)
 
     # eer_cm_lst, min_tDCF_lst = test_individual_attacks(os.path.join(args.model_dir, 'checkpoint_cm_score.txt'))
     # print(eer_cm_lst)
