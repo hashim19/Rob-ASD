@@ -51,7 +51,8 @@ class ASVspoof2019(Dataset):
         return len(self.all_info)
 
     def __getitem__(self, idx):
-        speaker, filename, _, tag, label = self.all_info[idx]
+        # speaker, filename, _, tag, label = self.all_info[idx]
+        speaker, filename, tag, label = self.all_info[idx]
         # try:
         #     with open(self.ptf + '/'+ filename + self.feature + '.pkl', 'rb') as feature_handle:
         #         feat_mat = pickle.load(feature_handle)

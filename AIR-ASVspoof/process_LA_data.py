@@ -5,6 +5,7 @@ import numpy as np
 from scipy.signal import lfilter
 import pickle
 
+import config as config
 from LFCC_pipeline import lfcc
 
 
@@ -59,28 +60,17 @@ if __name__ == "__main__":
     # print(evalProtocolFile)
 
     ############ For post processed Data ###########
-    db_folder = '/data/Data/'  # put your database root path here
+    db_folder = config.db_folder  # put your database root path here
 
-    # laundering_type = 'Noise_Addition/'
-    # laundering = 'AsvSpoofData_2019_WN_20_20_5'
-    # protocol_pth = 'white_20_20_5_protocol.txt'
+    laundering_type = config.laundering_type
+    laundering_param = config.laundering_param
+    protocol_pth = config.protocol_filename
     
+    pathToDatabase = os.path.join(db_folder, 'flac')
+    evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
+    pathToFeatures = os.path.join(config.feat_dir, laundering_type, laundering_param, 'lfcc_features_airasvspoof')
 
-    # laundering_type = 'Reverberation/'
-    # laundering = 'AsvSpoofData_2019_RT_0_9'
-    # protocol_pth = 'Protocol_ASV_RT_0_9.txt'
-
-    # laundering_type = 'Resampling/'
-    # laundering = 'resample_44100/'
-    # protocol_pth = 'resample_44100.txt'
-
-    laundering_type = 'Filtering/'
-    laundering = 'low_pass_filt_7000/'
-    protocol_pth = 'low_pass_filt_7000_protocol.txt'
-    
-    pathToDatabase = db_folder + laundering_type + laundering + '/'
-    evalProtocolFile = db_folder + 'AsvSpoofData_2019_protocols/' + protocol_pth
-    pathToFeatures = os.path.join('/data/Features/', laundering_type, laundering, 'lfcc_features_airasvspoof')
+    audio_ext = config.audio_ext
 
 
     # # read train protocol
@@ -92,8 +82,14 @@ if __name__ == "__main__":
     # devfilelist = devprotcol["AUDIO_FILE_NAME"].to_list()
 
     # read eval protocol
-    evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_for_LA", "SYSTEM_ID", "KEY"])
-    evalfilelist = evalprotcol["AUDIO_FILE_NAME"].to_list()
+    evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+
+    # create a temporary protocol file, this file will be used by test.py
+    evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+    evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+    evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+
+    evalfilelist = evalprotcol_tmp["AUDIO_FILE_NAME"].to_list()
 
     ############ Feature extraction for training data ##############
 
@@ -172,7 +168,7 @@ if __name__ == "__main__":
     for file in evalfilelist:
 
         # audio_file = os.path.join(pathToDatabase, 'ASVspoof2019_' + access_type + '_eval/flac', file + '.flac')
-        audio_file = os.path.join(pathToDatabase, file + '.wav')
+        audio_file = os.path.join(pathToDatabase, file + audio_ext)
 
         x, fs = librosa.load(audio_file)
         
