@@ -103,7 +103,7 @@ cd project
 bash 01_wrapper_eval.sh
 ```
 
-The score file will be generated in Score_Files directory
+The score file will be generated in the Score_Files directory.
 
 ## OC-Softmax
 
@@ -119,6 +119,18 @@ source venv/bin/activate
 # install the required libraries
 pip3 install -r requirements.txt
 ```
+
+### Evaluation
+
+First, set the database path, laundering type, and laundering parameter inside the config file. Then run the following commands,
+```
+# first extract features
+python3 process_LA_data.py
+
+# Then generate the EER and score file
+python3 test.py
+```
+The score file will be generated in the Score_Files directory.
 
 ## RawNet2
 
