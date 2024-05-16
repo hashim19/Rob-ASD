@@ -143,6 +143,13 @@ conda install pytorch=1.4.0 -c pytorch
 pip install -r requirements.txt
 ```
 
+### Evaluation
+
+First, set the database path, laundering type, and laundering parameter inside the config file. Then run the following command,
+```
+python3 main.py --eval
+```
+
 ## RawGAT-ST
 
 ### Installation
