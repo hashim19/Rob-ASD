@@ -179,4 +179,8 @@ if __name__ == "__main__":
     # cm_score_dir_path = "./models1028/ocsoftmax"
     # eer_cm, min_tDCF = compute_eer_and_tdcf(os.path.join(cm_score_dir_path, 'checkpoint_cm_score.txt'), "/home/hashim/PhD/Data/AsvSpoofData_2019/train/")
 
+    # remove the tmp protocol file
+    print("removing the temporary protocol file!")
+    os.remove(eval_ndx)
+
 
