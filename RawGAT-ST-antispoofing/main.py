@@ -13,6 +13,8 @@ from model import RawGAT_ST  # In main model script we used our best RawGAT-ST-m
 # from tensorboardX import SummaryWriter
 from core_scripts.startup_config import set_random_seed
 
+import config as config
+import pandas as pd
 
 def pad(x, max_len=64600):
     x_len = x.shape[0]
@@ -183,45 +185,31 @@ if __name__ == '__main__':
                         default=False, 
                         help='use cudnn-benchmark? (default false)') 
     
+    ############ Assign configuration parameters ###########
+    db_folder = config.db_folder  # put your database root path here
 
-    db_folder = '/data/Data/'  # put your database root path here
-
-    # laundering_type = 'Reverberation/'
-    # laundering = 'AsvSpoofData_2019_RT_0_9'
-    # protocol_pth = 'Protocol_ASV_RT_0_9.txt'
-
-    # laundering_type = 'Noise_Addition/'
-    # laundering = 'AsvSpoofData_2019_street_0_0_5'
-    # protocol_pth = 'street_0_0_5_protocol.txt'
-
-    # laundering_type = 'Recompression/'
-    # laundering = 'recompression_320k'
-    # protocol_pth = 'recompression_protocol_320k.txt'
-
-    # laundering_type = 'Resampling/'
-    # laundering = 'resample_44100'
-    # protocol_pth = 'resample_44100.txt'
-
-    laundering_type = 'Filtering/'
-    laundering = 'low_pass_filt_7000'
-    protocol_pth = 'low_pass_filt_7000_protocol.txt'
-
-    # laundering_type = 'AsvSpoofData_2019/train/LA/'
-    # laundering = 'ASVspoof2019_LA_eval'
-    # protocol_pth = 'ASVspoof2019.LA.cm.eval.trl.txt'
+    laundering_type = config.laundering_type
+    laundering_param = config.laundering_param
+    protocol_pth = config.protocol_filename
     
+    pathToDatabase = os.path.join(db_folder, 'flac')
+    evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
+
+    audio_ext = config.audio_ext
+
+    # read eval protocol
+    evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+
+    # create a temporary protocol file, this file will be used by test.py
+    evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+    evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+    evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
+    evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
     
-    eval_folder = db_folder + laundering_type + laundering + '/'
-    eval_ndx = db_folder + 'AsvSpoofData_2019_protocols/' + protocol_pth
+    eval_folder = os.path.join(db_folder, 'flac/')
+    eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
 
-    # eval_folder = db_folder + laundering_type + laundering + '/' + 'flac/'
-    # eval_ndx = db_folder + laundering_type + 'ASVspoof2019_LA_cm_protocols/' + protocol_pth
-
-    audio_ext = '.wav'
-
-    # feat_dir = os.path.join('/data/Features/', laundering_type, laundering, 'lfcc_features_new')
-
-    eval_out = 'RawGAT_' + laundering + '_eval_CM_scores.txt'
+    eval_out = os.path.join(config.score_dir, 'RawGAT_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
 
     model_path = './Pre_trained_models/RawGAT_ST_mul/Best_epoch.pth'
 
