@@ -15,6 +15,7 @@ from importlib import import_module
 from pathlib import Path
 from shutil import copy
 from typing import Dict, List, Union
+import pandas as pd
 
 import torch
 import torch.nn as nn
@@ -53,9 +54,17 @@ def main(args: argparse.Namespace) -> None:
 
     # define database related paths
     output_dir = Path(args.output_dir)
+    score_dir = Path(config["score_dir"])
     prefix_2019 = "ASVspoof2019.{}".format(track)
-    database_path = Path(config["database_path"])
+    db_folder = Path(config["database_path"])
     orig_database_path = Path(config["orig_data_path"])
+
+    laundering_type = config["laundering_type"]
+    laundering_param = config["laundering_param"]
+    protocol_pth = 'ASVspoofLauneredDatabase_' + laundering_type + '.txt'
+
+    database_path = os.path.join(db_folder, 'flac')
+
     # dev_trial_path = (database_path /
     #                   "ASVspoof2019_{}_cm_protocols/{}.cm.dev.trl.txt".format(
     #                       track, prefix_2019))
@@ -64,7 +73,21 @@ def main(args: argparse.Namespace) -> None:
     #     "ASVspoof2019_{}_cm_protocols/{}.cm.eval.trl.txt".format(
     #         track, prefix_2019))
 
-    eval_trial_path = Path(config["protocol_path"])
+    evalProtocolFile = Path(os.path.join(db_folder, 'protocols', protocol_pth))
+
+    # read eval protocol
+    evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+
+    # create a temporary protocol file, this file will be used by test.py
+    evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+    evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+    evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
+    evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+    
+    eval_folder = os.path.join(db_folder, 'flac/')
+    eval_trial_path = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
+
+    eval_out = os.path.join(config["score_dir"], 'RawGAT_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
 
     # define model related paths
     model_tag = "{}_{}_ep{}_bs{}".format(
@@ -75,7 +98,7 @@ def main(args: argparse.Namespace) -> None:
         model_tag = model_tag + "_{}".format(args.comment)
     model_tag = output_dir / model_tag
     model_save_path = model_tag / "weights"
-    eval_score_path = model_tag / Path(str(config["data_name"]) + '_' + str(config["eval_output"]))
+    eval_score_path = score_dir / Path('AASIST_' + laundering_type + '_' + laundering_param + '_' + str(config["eval_output"]))
     writer = SummaryWriter(model_tag)
     os.makedirs(model_save_path, exist_ok=True)
     copy(args.config, model_tag / "config.conf")

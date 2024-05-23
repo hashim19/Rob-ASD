@@ -4,3 +4,4 @@ numpy
 soundfile
 tensorboard
 packaging
+pandas
