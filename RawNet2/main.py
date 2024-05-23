@@ -278,3 +278,6 @@ if __name__ == '__main__':
     #         print('best model find at epoch', epoch)
     #     best_acc = max(valid_accuracy, best_acc)
     #     torch.save(model.state_dict(), os.path.join(model_save_path, 'epoch_{}.pth'.format(epoch)))
+
+    print("removing the temporary protocol file!")
+    os.remove(eval_ndx)
