@@ -95,7 +95,7 @@ class Dataset_ASVspoof2019_devNeval(Dataset):
     def __getitem__(self, index):
         key = self.list_IDs[index]
         # X, _ = sf.read(str(self.base_dir / f"flac/{key}.flac"))
-        file_path = os.path.join(self.base_dir, key + '.wav')
+        file_path = os.path.join(self.base_dir, key + '.flac')
         X, _ = sf.read(file_path)
         X_pad = pad(X, self.cut)
         x_inp = Tensor(X_pad)
