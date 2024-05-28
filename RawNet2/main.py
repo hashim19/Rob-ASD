@@ -12,6 +12,8 @@ from model import RawNet
 from tensorboardX import SummaryWriter
 from core_scripts.startup_config import set_random_seed
 
+import sys
+sys.path.append("../")
 import config as config
 import pandas as pd
 
@@ -146,13 +148,33 @@ if __name__ == '__main__':
     
     ############ Assign configuration parameters ###########
     db_folder = config.db_folder  # put your database root path here
+    db_type = config.db_type
 
     laundering_type = config.laundering_type
     laundering_param = config.laundering_param
     protocol_pth = config.protocol_filename
-    
-    pathToDatabase = os.path.join(db_folder, 'flac')
-    evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
+
+    if db_type == 'in_the_wild':
+        eval_folder = os.path.join(db_folder, 'release_in_the_wild')
+        evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
+        evalprotcol = pd.read_csv(evalProtocolFile, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
+
+        eval_ndx = evalprotcol
+
+    elif db_type == 'asvspoof':
+        eval_folder = os.path.join(db_folder, 'flac')
+        evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
+
+        # read eval protocol
+        evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+
+        # create a temporary protocol file, this file will be used by test.py
+        evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+        evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+        evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
+        # evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+
+        eval_ndx = evalprotcol_tmp
 
     audio_ext = config.audio_ext
 
@@ -165,20 +187,8 @@ if __name__ == '__main__':
     # devprotcol = pd.read_csv(devProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_for_LA", "SYSTEM_ID", "KEY"])
     # devfilelist = devprotcol["AUDIO_FILE_NAME"].to_list()
 
-    # read eval protocol
-    evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
-
-    # create a temporary protocol file, this file will be used by test.py
-    evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
-    evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
-    evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
-    evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
-    
-    eval_folder = os.path.join(db_folder, 'flac/')
-    eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
-
     eval_out = os.path.join(config.score_dir, 'RawNet2_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
-
+ 
     model_path = './models/pre_trained_DF_RawNet2.pth'
 
     dir_yaml = os.path.splitext('model_config_RawNet')[0] + '.yaml'
@@ -231,7 +241,8 @@ if __name__ == '__main__':
 
     #evaluation 
     if args.eval:
-        file_eval = genSpoof_list(dir_meta= eval_ndx, is_train=False, is_eval=True)
+        # file_eval = genSpoof_list(dir_meta= eval_ndx, is_train=False, is_eval=True)
+        file_eval = eval_ndx["AUDIO_FILE_NAME"].to_list()
         print('no. of eval trials',len(file_eval))
 
         eval_set=Dataset_ASVspoof2021_eval(list_IDs = file_eval, base_dir = eval_folder, ext=audio_ext)
@@ -279,5 +290,5 @@ if __name__ == '__main__':
     #     best_acc = max(valid_accuracy, best_acc)
     #     torch.save(model.state_dict(), os.path.join(model_save_path, 'epoch_{}.pth'.format(epoch)))
 
-    print("removing the temporary protocol file!")
-    os.remove(eval_ndx)
+    # print("removing the temporary protocol file!")
+    # os.remove(eval_ndx)

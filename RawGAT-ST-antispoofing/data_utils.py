@@ -6,16 +6,23 @@ from torch.utils.data import DataLoader, Dataset
 import numpy as np
 from joblib import Parallel, delayed
 
+import sys
+sys.path.append("../")
+import config as config
+
 
 ASVFile = collections.namedtuple('ASVFile',
     ['speaker_id', 'file_name', 'path', 'sys_id', 'key'])
+
+WildFile = collections.namedtuple('WildFile',
+    ['file_name', 'speaker_id', 'path', 'key'])
 
 class ASVDataset(Dataset):
     """ Utility class to load  train/dev/Eval datatsets """
     def __init__(self, database_path=None,protocols_path=None,transform=None, 
         is_train=True, sample_size=None, 
         is_logical=True, feature_name=None, is_eval=False,
-        eval_part=0, ext='.flac'):
+        eval_part=0, ext='.flac', db_type = 'asvspoof'):
 
         track = 'LA'   
         data_root=protocols_path      
@@ -24,6 +31,7 @@ class ASVDataset(Dataset):
         self.is_logical = is_logical
         self.prefix = 'ASVspoof2019_{}'.format(track)
         self.ext = ext
+        self.db_type = db_type
         
         v1_suffix = ''
         if is_eval and track == 'LA':
@@ -100,9 +108,14 @@ class ASVDataset(Dataset):
         #     self.data_x, self.data_y, self.data_sysid, self.files_meta = torch.load(self.cache_fname)
         #     print('Dataset loaded from cache ', self.cache_fname)
         # else:
-        self.files_meta = self.parse_protocols_file(self.protocols_fname)
+        self.files_meta = self.parse_protocols_file(self.protocols_fname, db_type=self.db_type)
         data = list(map(self.read_file, self.files_meta))
-        self.data_x, self.data_y, self.data_sysid = map(list, zip(*data))
+
+        if config.db_type == 'asvspoof':
+            self.data_x, self.data_y, self.data_sysid = map(list, zip(*data))
+        
+        elif config.db_type == 'in_the_wild':
+            self.data_x, self.data_y = map(list, zip(*data))
         
         if self.transform:
             self.data_x = Parallel(n_jobs=4, prefer='threads')(delayed(self.transform)(x) for x in self.data_x)
@@ -113,7 +126,8 @@ class ASVDataset(Dataset):
             self.files_meta= [self.files_meta[x] for x in select_idx]
             self.data_x = [self.data_x[x] for x in select_idx]
             self.data_y = [self.data_y[x] for x in select_idx]
-            self.data_sysid = [self.data_sysid[x] for x in select_idx]
+            if config.db_type == 'asvspoof':
+                self.data_sysid = [self.data_sysid[x] for x in select_idx]
             
         self.length = len(self.data_x)
 
@@ -129,16 +143,27 @@ class ASVDataset(Dataset):
         
         data_x, sample_rate = sf.read(meta.path)
         data_y = meta.key
-        return data_x, float(data_y), meta.sys_id
+        if config.db_type == 'asvspoof':
+            return data_x, float(data_y), meta.sys_id
+        
+        elif config.db_type == 'in_the_wild':
+            return data_x, float(data_y)
 
     def _parse_line(self, line):
         tokens = line.strip().split(' ')
         if self.is_eval:
-            return ASVFile(speaker_id=tokens[0],
-                file_name=tokens[1],
-                path=os.path.join(self.files_dir, tokens[1] + self.ext),
-                sys_id=self.sysid_dict[tokens[3]],
-                key=int(tokens[4] == 'bonafide'))
+            if config.db_type == 'asvspoof':
+                return ASVFile(speaker_id=tokens[0],
+                    file_name=tokens[1],
+                    path=os.path.join(self.files_dir, tokens[1] + self.ext),
+                    sys_id=self.sysid_dict[tokens[3]],
+                    key=int(tokens[4] == 'bonafide'))
+            elif config.db_type == 'in_the_wild':
+                tokens = line.strip().split(',')
+                return WildFile(speaker_id=tokens[1],
+                    file_name=tokens[0],
+                    path=os.path.join(self.files_dir, tokens[0] + self.ext),
+                    key=int(tokens[2] == 'bonafide'))
         return ASVFile(speaker_id=tokens[0],
             file_name=tokens[1],
             path=os.path.join(self.files_dir, tokens[1] + self.ext),
@@ -147,7 +172,7 @@ class ASVDataset(Dataset):
         
 
    
-    def parse_protocols_file(self, protocols_fname):
+    def parse_protocols_file(self, protocols_fname, db_type='asvspoof'):
         lines = open(protocols_fname).readlines()
         files_meta = map(self._parse_line, lines)
         return list(files_meta)

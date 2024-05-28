@@ -39,4 +39,5 @@ cd baseline_LA
 # For details, please check 02_eval_alternative.sh 
 # bash 02_eval_alternative.sh /data/Data/Filtering/low_pass_filt_7000 low_pass_filt_7000 __pretrained/trained_network.pt
 
-bash 02_eval_alternative.sh /data/Data/ASVSpoofLaunderedDatabase/ASVSpoofLaunderedDatabase Noise_Addition babble_10 __pretrained/trained_network.pt
+# bash 02_eval_alternative.sh /data/Data/ASVSpoofLaunderedDatabase/ASVSpoofLaunderedDatabase Noise_Addition babble_10 __pretrained/trained_network.pt
+bash 02_eval_alternative.sh /data/Data/ds_wild wild wild __pretrained/trained_network.pt

@@ -10,6 +10,9 @@ from itertools import repeat
 from multiprocessing.pool import Pool
 from functools import partial
 
+import sys
+sys.path.append("../")
+
 import config as config
 
 from feature_functions import extract_cqcc, extract_lfcc, extract_mfcc
@@ -85,13 +88,18 @@ def extract_features(file, features, data_type='train', data_label='bonafide', f
 
 if __name__ == "__main__":
 
+    db_type = config.db_type
     db_folder = config.db_folder
 
     laundering_type = config.laundering_type
     laundering_param = config.laundering_param
     protocol_pth = config.protocol_filename
 
-    data_dir = os.path.join(db_folder, 'flac')
+    if db_type == 'in_the_wild':
+        data_dir = os.path.join(db_folder, 'release_in_the_wild')
+    elif db_type == 'asvspoof':
+        data_dir = os.path.join(db_folder, 'flac')
+
     protocol_path = os.path.join(db_folder, 'protocols', protocol_pth)
 
     Feat_dir = os.path.join(config.feat_dir, laundering_type, laundering_param)
@@ -123,16 +131,23 @@ if __name__ == "__main__":
 
             print(protocol_path)
 
-            df = pd.read_csv(protocol_path, sep=' ', header=None)
-            # df = pd.read_csv(protocol_path, sep=',', header=None)
-            # df = df.drop(0)
-            # print(df)
-            df = df[df[5] == laundering_param]
-            print(df)
-            files = df[1].values
+            if db_type == 'in_the_wild':
+                df = pd.read_csv(protocol_path, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
+                df = df.iloc[1:,:]
+                files = df["AUDIO_FILE_NAME"].values
+                print(df)
+                print(len(files))
 
-            print(len(files))
-            args_iter = list(repeat(data_dir + '/' + files + audio_ext, 1))
+                args_iter = list(repeat(data_dir + '/' + files, 1))
+
+            elif db_type == 'asvspoof':
+                df = pd.read_csv(protocol_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+                df = df[df["Laundering_Param"] == laundering_param]
+                files = df["AUDIO_FILE_NAME"].values
+                print(df)
+                print(len(files))
+
+                args_iter = list(repeat(data_dir + '/' + files + audio_ext, 1))
             
             print(*args_iter)
 

@@ -5,11 +5,16 @@ import argparse
 import eval_metrics as em
 import matplotlib.pyplot as plt
 
+import config as config
+
 
 def gen_score_file(score_file, protocl_file, out_dir='out_dir'):
 
     # read protocol file using pandas 
-    evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_for_LA", "SYSTEM_ID", "KEY"])
+    if config.db_type == 'in_the_wild':
+        evalprotcol = pd.read_csv(protocl_file, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
+    elif config.db_type == 'asvspoof':      
+        evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_for_LA", "SYSTEM_ID", "KEY"])
     # evalprotcol = pd.read_csv(protocl_file, sep=",", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"])
 
     print(evalprotcol)
@@ -93,7 +98,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    protocol_file_path = args.score_file_dir + args.protocol_filename
+    # protocol_file_path = args.score_file_dir + args.protocol_filename
+    protocol_file_path = os.path.join(config.db_folder, 'protocols', args.protocol_filename)
     score_file_path = args.score_file_dir + args.score_filename
 
     if args.score_file_has_keys:

@@ -4,12 +4,14 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
-from dataset import ASVspoof2019
+from dataset import ASVspoof2019, InTheWild
 from evaluate_tDCF_asvspoof19 import compute_eer_and_tdcf
 from tqdm import tqdm
 import eval_metrics as em
 import numpy as np
 
+import sys
+sys.path.append("../")
 import config as config
 
 def test_model(feat_model_path, loss_model_path, part, add_loss, device, data_dir, protocol_file_path, feat_path, d_name):
@@ -29,7 +31,10 @@ def test_model(feat_model_path, loss_model_path, part, add_loss, device, data_di
     #                         "/home/hashim/PhD/Data/AsvSpoofData_2019/train/LA/ASVspoof2019_LA_cm_protocols/", part,
     #                         "LFCC", feat_len=750, padding="repeat")
 
-    test_set = ASVspoof2019("LA", feat_path, protocol_file_path, part, "LFCC", feat_len=750, padding="repeat")
+    if config.db_type == 'in_the_wild':
+        test_set = InTheWild(feat_path, protocol_file_path, part, "LFCC", feat_len=750, padding="repeat")
+    elif config.db_type == 'asvspoof':
+        test_set = ASVspoof2019("LA", feat_path, protocol_file_path, part, "LFCC", feat_len=750, padding="repeat")
 
     testDataLoader = DataLoader(test_set, batch_size=32, shuffle=False, num_workers=0,
                                 collate_fn=test_set.collate_fn)
@@ -161,13 +166,19 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     db_folder = config.db_folder  # put your database root path here
+    db_type = config.db_type
 
     laundering_type = config.laundering_type
     laundering_param = config.laundering_param
     protocol_pth = config.protocol_filename
-    
-    eval_folder = os.path.join(db_folder, 'flac')
-    eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
+
+    if db_type == 'in_the_wild':
+        eval_folder = os.path.join(db_folder, 'release_in_the_wild')
+        eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth)
+    elif db_type == 'asvspoof':
+        eval_folder = os.path.join(db_folder, 'flac')
+        eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
+
     Feat_dir = os.path.join(config.feat_dir, laundering_type, laundering_param, 'lfcc_features_airasvspoof')
 
     test(model_dir, loss, device, data_dir=eval_folder, protocol_path=eval_ndx, feat_dir=Feat_dir, data_name = 'OCSoftmax_'+ laundering_type + '_' + laundering_param)
@@ -180,7 +191,7 @@ if __name__ == "__main__":
     # eer_cm, min_tDCF = compute_eer_and_tdcf(os.path.join(cm_score_dir_path, 'checkpoint_cm_score.txt'), "/home/hashim/PhD/Data/AsvSpoofData_2019/train/")
 
     # remove the tmp protocol file
-    print("removing the temporary protocol file!")
-    os.remove(eval_ndx)
+    # print("removing the temporary protocol file!")
+    # os.remove(eval_ndx)
 
 

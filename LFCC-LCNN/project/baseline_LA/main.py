@@ -135,8 +135,12 @@ def main():
         
         if type(prj_conf.test_list) is list:
             t_lst = prj_conf.test_list
+            # print(t_lst)
         else:
             t_lst = nii_list_tool.read_list_from_text(prj_conf.test_list)
+
+            # t_lst = [e.split('.')[0] for e in t_lst]
+            print(t_lst)
 
         test_set = nii_dset.NIIDataSetLoader(
             prj_conf.test_set_name, \

@@ -24,7 +24,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchcontrib.optim import SWA
 
 from data_utils import (Dataset_ASVspoof2019_train,
-                        Dataset_ASVspoof2019_devNeval, genSpoof_list)
+                        Dataset_ASVspoof2019_devNeval, genSpoof_list, genSpoof_list_wild)
 from evaluation import calculate_tDCF_EER
 from utils import create_optimizer, seed_worker, set_seed, str_to_bool
 
@@ -58,12 +58,37 @@ def main(args: argparse.Namespace) -> None:
     prefix_2019 = "ASVspoof2019.{}".format(track)
     db_folder = Path(config["database_path"])
     orig_database_path = Path(config["orig_data_path"])
+    db_type = config["db_type"]
 
     laundering_type = config["laundering_type"]
     laundering_param = config["laundering_param"]
-    protocol_pth = 'ASVspoofLauneredDatabase_' + laundering_type + '.txt'
 
-    database_path = os.path.join(db_folder, 'flac')
+    if db_type == 'in_the_wild':
+        protocol_pth = 'wild_meta.txt'
+
+        database_path = os.path.join(db_folder, 'release_in_the_wild')
+
+        evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
+        evalprotcol = pd.read_csv(evalProtocolFile, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
+
+        eval_trial_path = evalProtocolFile
+
+    elif db_type == 'asvspoof':
+        protocol_pth = 'ASVspoofLauneredDatabase_' + laundering_type + '.txt'
+
+        database_path = os.path.join(db_folder, 'flac')
+
+        evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
+        # read eval protocol
+        evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+
+        # create a temporary protocol file, this file will be used by test.py
+        evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+        evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+        evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
+        evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+        
+        eval_trial_path = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
 
     # dev_trial_path = (database_path /
     #                   "ASVspoof2019_{}_cm_protocols/{}.cm.dev.trl.txt".format(
@@ -72,20 +97,6 @@ def main(args: argparse.Namespace) -> None:
     #     database_path /
     #     "ASVspoof2019_{}_cm_protocols/{}.cm.eval.trl.txt".format(
     #         track, prefix_2019))
-
-    evalProtocolFile = Path(os.path.join(db_folder, 'protocols', protocol_pth))
-
-    # read eval protocol
-    evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
-
-    # create a temporary protocol file, this file will be used by test.py
-    evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
-    evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
-    evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
-    evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
-    
-    eval_folder = os.path.join(db_folder, 'flac/')
-    eval_trial_path = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
 
     eval_out = os.path.join(config["score_dir"], 'RawGAT_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
 
@@ -125,16 +136,16 @@ def main(args: argparse.Namespace) -> None:
         print("Model loaded : {}".format(config["model_path"]))
         print("Start evaluation...")
         produce_evaluation_file(eval_loader, model, device,
-                                eval_score_path, eval_trial_path)
-        calculate_tDCF_EER(cm_scores_file=eval_score_path,
-                           asv_score_file=orig_database_path /
-                           config["asv_score_path"],
-                           output_file=model_tag / "t-DCF_EER.txt")
-        print("DONE.")
-        eval_eer, eval_tdcf = calculate_tDCF_EER(
-            cm_scores_file=eval_score_path,
-            asv_score_file=orig_database_path / config["asv_score_path"],
-            output_file=model_tag/"loaded_model_t-DCF_EER.txt")
+                                eval_score_path, eval_trial_path, config)
+        # calculate_tDCF_EER(cm_scores_file=eval_score_path,
+        #                    asv_score_file=orig_database_path /
+        #                    config["asv_score_path"],
+        #                    output_file=model_tag / "t-DCF_EER.txt")
+        # print("DONE.")
+        # eval_eer, eval_tdcf = calculate_tDCF_EER(
+        #     cm_scores_file=eval_score_path,
+        #     asv_score_file=orig_database_path / config["asv_score_path"],
+        #     output_file=model_tag/"loaded_model_t-DCF_EER.txt")
         sys.exit(0)
 
     # get optimizer and scheduler
@@ -324,12 +335,17 @@ def get_loader(
         config: dict) -> List[torch.utils.data.DataLoader]:
 
     
-    file_eval = genSpoof_list(dir_meta=protocol_path,
-                              is_train=False,
-                              is_eval=True)
+    if config["db_type"] == 'in_the_wild':
+        file_eval = genSpoof_list_wild(dir_meta=protocol_path)
+    
+    elif config["db_type"] == 'asvspoof':
+        file_eval = genSpoof_list(dir_meta=protocol_path,
+                                  is_train=False,
+                                  is_eval=True)
 
     data_set = Dataset_ASVspoof2019_devNeval(list_IDs=file_eval,
-                                             base_dir=database_path)
+                                             base_dir=database_path,
+                                             audio_ext=config["audio_ext"])
 
 
     data_loader = DataLoader(data_set,
@@ -346,7 +362,8 @@ def produce_evaluation_file(
     model,
     device: torch.device,
     save_path: str,
-    trial_path: str) -> None:
+    trial_path: str,
+    config: dict) -> None:
     """Perform evaluation and save the score to a file"""
     model.eval()
     with open(trial_path, "r") as f_trl:
@@ -361,13 +378,18 @@ def produce_evaluation_file(
         # add outputs
         fname_list.extend(utt_id)
         score_list.extend(batch_score.tolist())
-
     assert len(trial_lines) == len(fname_list) == len(score_list)
     with open(save_path, "w") as fh:
         for fn, sco, trl in zip(fname_list, score_list, trial_lines):
-            _, utt_id, _, src, key = trl.strip().split(' ')
+
+            if config["db_type"] == 'in_the_wild':
+                utt_id, _, key = trl.strip().split(',')
+
+            elif config["db_type"] == 'asvspoof':
+                _, utt_id, _, src, key = trl.strip().split(' ')
+
             assert fn == utt_id
-            fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
+            fh.write("{} {} {}\n".format(utt_id, key, sco))
     print("Scores saved to {}".format(save_path))
 
 
