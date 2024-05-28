@@ -44,7 +44,9 @@ input_dims = [1]
 # File name extension for input features
 #  input_exts = [name_extention_of_feature_1, ...]
 #  here, we only use waveform, thus it is ".flac"
-input_exts = ['.flac']
+# input_exts = ['.flac']
+# input_exts = ['.wav']
+input_exts = ['.wav']
 
 # Temporal resolution for input features
 # input_reso = [reso_feature_1, reso_feature_2, ...]
