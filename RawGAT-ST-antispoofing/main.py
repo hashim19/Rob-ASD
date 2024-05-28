@@ -13,6 +13,8 @@ from model import RawGAT_ST  # In main model script we used our best RawGAT-ST-m
 # from tensorboardX import SummaryWriter
 from core_scripts.startup_config import set_random_seed
 
+import sys
+sys.path.append("../")
 import config as config
 import pandas as pd
 
@@ -79,12 +81,23 @@ def produce_evaluation_file(dataset, model, device, save_path):
         
 
         # add outputs
-        fname_list.extend(list(batch_meta[1]))
-        key_list.extend(
-          ['bonafide' if key == 1 else 'spoof' for key in list(batch_meta[4])])
-        sys_id_list.extend([dataset.sysid_dict_inv[s.item()]
-                            for s in list(batch_meta[3])])
-        score_list.extend(batch_score.tolist())
+
+        if config.db_type == 'asvspoof':
+
+            fname_list.extend(list(batch_meta[1]))
+            key_list.extend(
+            ['bonafide' if key == 1 else 'spoof' for key in list(batch_meta[4])])
+            sys_id_list.extend([dataset.sysid_dict_inv[s.item()]
+                                for s in list(batch_meta[3])])
+            score_list.extend(batch_score.tolist())
+
+        elif config.db_type == 'in_the_wild':
+
+            fname_list.extend(list(batch_meta[0]))
+            key_list.extend(
+            ['bonafide' if key == 1 else 'spoof' for key in list(batch_meta[3])])
+            sys_id_list.extend([ '-' for s in list(batch_meta[3])])
+            score_list.extend(batch_score.tolist())
         
     with open(save_path, 'w') as fh:
         for f, s, k, cm in zip(fname_list, sys_id_list, key_list, score_list):
@@ -187,27 +200,35 @@ if __name__ == '__main__':
     
     ############ Assign configuration parameters ###########
     db_folder = config.db_folder  # put your database root path here
+    db_type = config.db_type
 
     laundering_type = config.laundering_type
     laundering_param = config.laundering_param
     protocol_pth = config.protocol_filename
-    
-    pathToDatabase = os.path.join(db_folder, 'flac')
-    evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
+
+    if db_type == 'in_the_wild':
+        eval_folder = os.path.join(db_folder, 'release_in_the_wild')
+        evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
+        evalprotcol = pd.read_csv(evalProtocolFile, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
+
+        eval_ndx = evalProtocolFile
+
+    elif db_type == 'asvspoof':
+        eval_folder = os.path.join(db_folder, 'flac')
+        evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
+
+        # read eval protocol
+        evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+
+        # create a temporary protocol file, this file will be used by test.py
+        evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+        evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+        evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
+        evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+
+        eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
 
     audio_ext = config.audio_ext
-
-    # read eval protocol
-    evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
-
-    # create a temporary protocol file, this file will be used by test.py
-    evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
-    evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
-    evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
-    evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
-    
-    eval_folder = os.path.join(db_folder, 'flac/')
-    eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
 
     eval_out = os.path.join(config.score_dir, 'RawGAT_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
 
@@ -256,8 +277,8 @@ if __name__ == '__main__':
 
     # validation Dataloader
     eval_set = data_utils.ASVDataset(database_path=eval_folder, protocols_path=eval_ndx, is_train=False, is_logical=is_logical,
-                                    transform=transforms,
-                                    feature_name=args.features, is_eval=args.is_eval, eval_part=args.eval_part, ext=audio_ext)
+                                    transform=transforms, feature_name=args.features, is_eval=args.is_eval, eval_part=args.eval_part,
+                                    ext=audio_ext, db_type=db_type)
     # dev_loader = DataLoader(dev_set, batch_size=args.batch_size, shuffle=True)
     
     

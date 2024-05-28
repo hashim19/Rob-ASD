@@ -97,6 +97,70 @@ class ASVspoof2019(Dataset):
     def collate_fn(self, samples):
         return default_collate(samples)
 
+
+class InTheWild(Dataset):
+    def __init__(self, path_to_features, path_to_protocol, part='train', feature='LFCC',
+                 genuine_only=False, feat_len=750, padding='repeat'):
+        
+        # self.ptd = path_to_database
+        self.access_type = 'LA'
+        self.path_to_features = path_to_features
+        self.part = part
+        self.ptf = os.path.join(path_to_features, self.part)
+        # self.ptf = path_to_features
+        # self.path_to_audio = os.path.join(self.ptd, access_type, 'ASVspoof2019_'+access_type+'_'+ self.part +'/flac/')
+        self.genuine_only = genuine_only
+        self.feat_len = feat_len
+        self.feature = feature
+        self.path_to_protocol = path_to_protocol
+        self.padding = padding
+        protocol = path_to_protocol
+
+        self.label = {"spoof": 1, "bonafide": 0}
+        self.tag = {"-": 0}
+
+        with open(protocol, 'r') as f:
+            audio_info = [info.strip().split(',') for info in f.readlines()]
+            self.all_info = audio_info
+
+    def __len__(self):
+        return len(self.all_info)
+    
+
+    def __getitem__(self, idx):
+        # speaker, filename, _, tag, label = self.all_info[idx]
+        filename, speaker, label = self.all_info[idx]
+
+        try:
+            # with open(self.ptf + '/'+ self.feature + '_' + filename + '.pkl', 'rb') as feature_handle:
+            #     feat_mat = pickle.load(feature_handle)
+            with open(self.ptf + '/' + filename + '.pkl', 'rb') as feature_handle:
+                feat_mat = pickle.load(feature_handle)
+        except:
+            # add this exception statement since we may change the data split
+            print("Can't load feature file {}".format(filename))
+
+        
+        feat_mat = torch.from_numpy(feat_mat)
+        this_feat_len = feat_mat.shape[1]
+        if this_feat_len > self.feat_len:
+            startp = np.random.randint(this_feat_len-self.feat_len)
+            feat_mat = feat_mat[:, startp:startp+self.feat_len]
+        if this_feat_len < self.feat_len:
+            if self.padding == 'zero':
+                feat_mat = padding(feat_mat, self.feat_len)
+            elif self.padding == 'repeat':
+                feat_mat = repeat_padding(feat_mat, self.feat_len)
+            else:
+                raise ValueError('Padding should be zero or repeat!')
+
+        return feat_mat, filename, self.tag['-'], self.label[label]
+    
+
+    def collate_fn(self, samples):
+        return default_collate(samples)
+
+
 def padding(spec, ref_len):
     width, cur_len = spec.shape
     assert ref_len > cur_len

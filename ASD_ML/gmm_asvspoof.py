@@ -136,7 +136,7 @@ def train_gmm(data_label, features, train_keys, train_folders, audio_ext, dict_f
     return gmm
 
 
-def scoring(scores_file, dict_file, features, eval_ndx, eval_folder, audio_ext, feat_dir='features', features_cached=True, flag_debug=False):
+def scoring(scores_file, dict_file, features, eval_file_list, eval_folder, audio_ext, feat_dir='features', features_cached=True, flag_debug=False):
     logging.info('Scoring eval data')
 
     gmm_bona = GaussianMixture(covariance_type='diag')
@@ -153,13 +153,14 @@ def scoring(scores_file, dict_file, features, eval_ndx, eval_folder, audio_ext, 
         gmm_dict = pickle.load(s)
         gmm_spoof._set_parameters(gmm_dict)
 
-    pd = pandas.read_csv(eval_ndx, sep=' ', header=None)
+
+    # pd = pandas.read_csv(eval_ndx, sep=' ', header=None)
     # pd = pandas.read_csv(eval_ndx, sep=',', header=None)
     # pd = pd.drop(0)
     # if flag_debug:
     #     pd = pd[:1000]
 
-    files = pd[1].values
+    files = eval_file_list
     print(files)
     print(len(files))
 
@@ -177,7 +178,7 @@ def scoring(scores_file, dict_file, features, eval_ndx, eval_folder, audio_ext, 
             logging.info("\t...%d/%d..." % (i+1, len(files)))
 
         # try:
-        Tx = extract_features(eval_folder + '/' + file + audio_ext, features=features, feat_root=feat_dir, data_type='eval', cached=features_cached)
+        Tx = extract_features(eval_folder + '/' + str(file) + audio_ext, features=features, feat_root=feat_dir, data_type='eval', cached=features_cached)
         print(i)
         
         extraction_checkpoint = time.time()

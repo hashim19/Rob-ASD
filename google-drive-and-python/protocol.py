@@ -2,6 +2,7 @@ import pandas as pd
 import librosa
 import soundfile as sf
 import os
+from pathlib import Path
 
 
 def check_protol_file(p_file, p_file_orig):
@@ -139,37 +140,48 @@ def change_filename(filename, p_file=False):
 def update_protocol_file(p_file):
 
     # read the protcol file
-    evalprotcol_df = pd.read_csv(p_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_for_LA", "SYSTEM_ID", "KEY"])
+    # evalprotcol_df = pd.read_csv(p_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_for_LA", "SYSTEM_ID", "KEY"])
+    evalprotcol_df = pd.read_csv(p_file, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
 
     print(evalprotcol_df)
 
     for index, row in evalprotcol_df.iterrows():
 
         filename = row["AUDIO_FILE_NAME"]
+        key = row["KEY"]
 
-        new_filename = change_filename(filename, p_file=True)
+        # new_filename = change_filename(filename, p_file=True)
+        new_filename = filename.split('.')[0]
 
         if not new_filename == filename:
-            
-            evalprotcol_df.at[index, "AUDIO_FILE_NAME"] = new_filename
+            evalprotcol_df.at[index, "AUDIO_FILE_NAME"] = str(new_filename)
 
-    
+        if key == 'bona-fide':
+            evalprotcol_df.at[index, "KEY"] = 'bonafide'
+
+    evalprotcol_df = evalprotcol_df.iloc[1:,:]
     print(evalprotcol_df)
 
-    evalprotcol_df.to_csv(p_file, sep=" ", index=False, header=False)
+    parent_path = Path(p_file).parent.absolute().as_posix()
+
+    dst_p_file = os.path.join(parent_path, 'wild_meta.txt')
+    print(dst_p_file)
+
+    evalprotcol_df.to_csv(dst_p_file, sep=",", index=False, header=False)
 
 
 # path to the database
 # data_dir = '/home/alhashim/Data/AsvSpoofData_2019/train/LA/ASVspoof2019_LA_eval/flac/'  
 # data_dir = '/data/Data/AsvSpoofData_2019_RT_0_6/'
 
-data_name = 'AsvSpoofData_2019_WN_20_20_5/'
-data_dir = '/data/data/' + data_name
+data_name = 'ds_wild/'
+data_dir = '/data/Data/' + data_name
 
-dst_dir = '/data/Data/Noise_Addition/' + data_name
+# dst_dir = '/data/Data/Noise_Addition/' + data_name
 
 # path to protocol file
-protocol_file = '/data/Data/AsvSpoofData_2019_protocols/low_pass_filt_7000_protocol.txt'
+# protocol_file = '/data/Data/AsvSpoofData_2019_protocols/low_pass_filt_7000_protocol.txt'
+protocol_file = os.path.join(data_dir, 'protocols', 'meta.csv')
 
 orig_protocol_file = '../ASVspoof2019.LA.cm.eval.trl.txt'
 

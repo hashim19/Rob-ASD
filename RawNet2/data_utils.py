@@ -89,9 +89,9 @@ class Dataset_ASVspoof2021_eval(Dataset):
 
 	def __getitem__(self, index):
             self.cut=64600 # take ~4 sec audio (64600 samples)
-            key = self.list_IDs[index]
+            key = str(self.list_IDs[index])
             # X, fs = librosa.load(self.base_dir+'flac/'+key+'.flac', sr=16000)
-            X, fs = librosa.load(self.base_dir + key+ self.ext, sr=16000)
+            X, fs = librosa.load(os.path.join(self.base_dir, key+ self.ext), sr=16000)
             X_pad = pad(X,self.cut)
             x_inp = Tensor(X_pad)
             return x_inp,key           
