@@ -183,6 +183,13 @@ source venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
+### Evaluation
+
+First, set the database path, laundering type, laundering parameter, and score directory inside the config/AASIST.conf file. Then run the following command, 
+
+```
+python3 main.py --eval --config ./config/AASIST.conf
+```
 
 
 
