@@ -1,15 +1,21 @@
 from sklearn.mixture import GaussianMixture
 from random import sample
-import pandas
+import pandas as pd
 import pickle
 import math
 import numpy as np
 import os
 import logging
 import time
+import h5py
 from Asvspoof_dataset import PKL_dataset, open_pkl, gmm_custom_collate
 from extract_features import extract_features
 from scipy.special import logsumexp
+
+import sys
+sys.path.append("../")
+
+import config as config
 
 
 def train_gmm(data_label, features, train_keys, train_folders, audio_ext, dict_file, ncomp, feat_dir='features', init_only=False):
@@ -23,24 +29,32 @@ def train_gmm(data_label, features, train_keys, train_folders, audio_ext, dict_f
     partial_gmm_dict_file = os.path.join(gmm_save_dir, '_'.join(('init', 'partial.pkl')))
 
     if os.path.exists(partial_gmm_dict_file):
+        print('{} file already exists'.format(partial_gmm_dict_file))
         gmm = GaussianMixture(covariance_type='diag')
         with open(partial_gmm_dict_file, "rb") as tf:
             gmm._set_parameters(pickle.load(tf))
     else:
         data = list()
         for k, train_key in enumerate(train_keys):
-            pd = pandas.read_csv(train_key, sep=' ', header=None)
-            files = pd[pd[4] == data_label][1]
+            df = pd.read_csv(train_key, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+            print(df.head())
+            df = df.loc[df['KEY'] == data_label]
+            files = df["AUDIO_FILE_NAME"]
+
+            print(files)
+
             # files_subset = sample(list(files), 1000)  # random init with 1000 files
-            files_subset = (files.reset_index()[1]).loc[list(range(0, len(files), 10))]  # only every 10th file init
-            for file in files_subset:
+            # files_subset = (files.reset_index()["AUDIO_FILE_NAME"]).loc[list(range(0, len(files), 10))]  # only every 10th file init
+            files_subset = (files.reset_index()["AUDIO_FILE_NAME"]).loc[list(range(0, len(files), 20))]  # only every 20th file init
+            print(files_subset)
+            for file in files_subset.values:
                 # Tx = extract_features(train_folders[k] + file + audio_ext, features=features, cached=True)
-                Tx = extract_features(train_folders[k] + file + audio_ext, features=features, data_label=data_label,
+                Tx = extract_features(train_folders[k] + '/' + file + audio_ext, features=features, data_label=data_label,
                         data_type='train', feat_root=feat_dir, cached=True)
                 
                 data.append(Tx)
 
-        X = np.vstack(data)
+        X = np.vstack(data).astype(np.float32)
         print(X.shape)
 
         gmm = GaussianMixture(n_components=ncomp,
@@ -79,11 +93,16 @@ def train_gmm(data_label, features, train_keys, train_folders, audio_ext, dict_f
         log_prob_norm_acc = 0
         n_samples = 0
         for k, train_key in enumerate(train_keys):
-            pd = pandas.read_csv(train_key, sep=' ', header=None)
-            files = pd[pd[4] == data_label][1]
 
-            for file in files.values:
-                Tx = extract_features(train_folders[k] + file + audio_ext, features=features, data_label=data_label,
+            df = pd.read_csv(train_key, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+            df = df.loc[df['KEY'] == data_label]
+            files = df["AUDIO_FILE_NAME"].values
+
+            # pd = pd.read_csv(train_key, sep=' ', header=None)
+            # files = pd[pd[4] == data_label][1]
+
+            for file in files:
+                Tx = extract_features(train_folders[k] + '/' + file + audio_ext, features=features, data_label=data_label,
                         data_type='train', feat_root=feat_dir, cached=True)
                 n_samples += Tx.shape[0]
 
@@ -164,48 +183,73 @@ def scoring(scores_file, dict_file, features, eval_file_list, eval_folder, audio
     print(files)
     print(len(files))
 
+    h5_file = os.path.join(feat_dir, features + '_features.h5')
     scr = np.zeros_like(files, dtype=np.log(1).dtype)
 
-    total_time = 0
-    for i, file in enumerate(files):
+    if config.feature_format == 'h5f':
 
-        # if file == 'LA_E_8070617_RT_0_6' or file == 'LA_E_2800292_RT_0_9' or file == 'LA_E_1573988_RT_0_9':
-        #     continue
+        print("Using h5f features !!!")
 
-        loop_start_time = time.time()
+        # reading from hdf5 file
+        with h5py.File(h5_file, 'r') as h5f:
+            i = 0
+            for filename, feature_mat in h5f.items():
+                print(filename, feature_mat.shape, feature_mat.dtype)
 
-        if (i+1) % 1000 == 0:
-            logging.info("\t...%d/%d..." % (i+1, len(files)))
+                bona_score = gmm_bona.score(feature_mat)
+                spoof_score = gmm_spoof.score(feature_mat)
 
-        # try:
-        Tx = extract_features(eval_folder + '/' + str(file) + audio_ext, features=features, feat_root=feat_dir, data_type='eval', cached=features_cached)
-        print(i)
-        
-        extraction_checkpoint = time.time()
-        print("feature extraction time {}".format(extraction_checkpoint-loop_start_time))
+                print(bona_score)
+                print(spoof_score)
 
-        Tx = Tx.astype('float32')
+                scr[i] = bona_score - spoof_score
 
-        print(Tx.shape)
+                i = i + 1
 
-        bona_score = gmm_bona.score(Tx)
-        spoof_score = gmm_spoof.score(Tx)
+    elif config.feature_format == 'pkl':
 
-        print(bona_score)
-        print(spoof_score)
+        print("Using Pickle Features")
 
-        scr[i] = bona_score - spoof_score
+        total_time = 0
+        for i, file in enumerate(files):
 
-        scoring_checkpoint = time.time()
+            # if file == 'LA_E_8070617_RT_0_6' or file == 'LA_E_2800292_RT_0_9' or file == 'LA_E_1573988_RT_0_9':
+            #     continue
 
-        print("scoring time {}".format(scoring_checkpoint - extraction_checkpoint))
+            loop_start_time = time.time()
 
-        loop_time = scoring_checkpoint - loop_start_time
-        print("total time {}".format(loop_time))
+            if (i+1) % 1000 == 0:
+                logging.info("\t...%d/%d..." % (i+1, len(files)))
 
-        total_time += loop_time
+            # try:
+            Tx = extract_features(eval_folder + '/' + str(file) + audio_ext, features=features, feat_root=feat_dir, data_type='eval', cached=features_cached)
+            print(i)
+            
+            extraction_checkpoint = time.time()
+            print("feature extraction time {}".format(extraction_checkpoint-loop_start_time))
 
-    pd_out = pandas.DataFrame({'files': files, 'scores': scr})
+            Tx = Tx.astype('float32')
+
+            print(Tx.shape)
+
+            bona_score = gmm_bona.score(Tx)
+            spoof_score = gmm_spoof.score(Tx)
+
+            print(bona_score)
+            print(spoof_score)
+
+            scr[i] = bona_score - spoof_score
+
+            scoring_checkpoint = time.time()
+
+            print("scoring time {}".format(scoring_checkpoint - extraction_checkpoint))
+
+            loop_time = scoring_checkpoint - loop_start_time
+            print("total time {}".format(loop_time))
+
+            total_time += loop_time
+
+    pd_out = pd.DataFrame({'files': files, 'scores': scr})
     pd_out.to_csv(scores_file, sep=' ', header=False, index=False)
 
     logging.info('\t... scoring completed.\n')
