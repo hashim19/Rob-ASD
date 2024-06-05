@@ -90,17 +90,25 @@ if __name__ == "__main__":
 
     db_type = config.db_type
     db_folder = config.db_folder
+    data_names = config.data_names
 
     laundering_type = config.laundering_type
     laundering_param = config.laundering_param
-    protocol_pth = config.protocol_filename
+    protocol_filenames = config.protocol_filenames
 
-    if db_type == 'in_the_wild':
-        data_dir = os.path.join(db_folder, 'release_in_the_wild')
-    elif db_type == 'asvspoof':
-        data_dir = os.path.join(db_folder, 'flac')
+    # if db_type == 'in_the_wild':
+    #     data_dir = [os.path.join(db_folder, 'release_in_the_wild')]
+    # elif db_type == 'asvspoof_eval_laundered':
+    #     data_dir = [os.path.join(db_folder, 'flac')]
+    # elif db_type == 'asvspoof_train_laundered':
+    
+    # data_dirs = [os.path.join(db_folder, dt_name) for dt_name in data_names]
 
-    protocol_path = os.path.join(db_folder, 'protocols', protocol_pth)
+    # print(data_dirs)
+
+    # protocol_paths = [os.path.join(db_folder, 'protocols', pf) for pf in protocol_filenames] 
+
+    # print(protocol_paths)
 
     Feat_dir = os.path.join(config.feat_dir, laundering_type, laundering_param)
 
@@ -112,56 +120,83 @@ if __name__ == "__main__":
 
 
     # extract features and save them
-    for data_type in data_types:
 
-        if data_type == 'train':
+    for data_name, protocol_filename in zip(data_names, protocol_filenames):
 
-            for data_label in data_labels:
+        data_dir = os.path.join(db_folder, data_name, 'flac')
+        protocol_path = os.path.join(db_folder, 'protocols', protocol_filename)
 
-                df = pd.read_csv(protocol_path, sep=' ', header=None)
-                files = df[df[4] == data_label][1]
-                print("{} data size is {}".format(data_label, files.shape))
+        print(data_dir)
+        print(protocol_path)
 
-                for nf, file in enumerate(files):
-                    Tx = extract_features(data_dir + file + audio_ext, features=features, data_label=data_label,
-                        data_type=data_type, feat_root=Feat_dir, cached=True)
-                    print(Tx.shape)
+        for data_type in data_types:
 
-        if data_type == 'eval':
+            if data_type == 'train':
 
-            print(protocol_path)
+                for data_label in data_labels:
 
-            if db_type == 'in_the_wild':
-                df = pd.read_csv(protocol_path, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
-                df = df.iloc[1:,:]
-                files = df["AUDIO_FILE_NAME"].values
-                print(df)
-                print(len(files))
+                    if data_name == 'ASVspoof2019_LA_train' or data_name == 'ASVspoof2019_LA_dev':
+                        df = pd.read_csv(protocol_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"])
+                        df = df.loc[df['KEY'] == data_label]
+                        files = df["AUDIO_FILE_NAME"].values
 
-                args_iter = list(repeat(data_dir + '/' + files, 1))
+                    elif data_name == 'ASVSpoofData_2019_train_10_percent_laundered':
+                        df = pd.read_csv(protocol_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+                        df = df.loc[df['KEY'] == data_label]
+                        files = df["AUDIO_FILE_NAME"].values
+                    
+                    print(df.head())
 
-            elif db_type == 'asvspoof':
-                df = pd.read_csv(protocol_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
-                df = df[df["Laundering_Param"] == laundering_param]
-                files = df["AUDIO_FILE_NAME"].values
-                print(df)
-                print(len(files))
+                    print("{} data size is {}".format(data_label, files.shape))
 
-                args_iter = list(repeat(data_dir + '/' + files + audio_ext, 1))
-            
-            print(*args_iter)
+                    args_iter = list(repeat(data_dir + '/' + files + audio_ext, 1))
 
-            with Pool(processes=6) as pool:
+                    with Pool(processes=6) as pool:
 
-                # starmap_with_kwargs(pool, extract_features, args_iter, kwargs_iter)
+                        for result in pool.imap(partial(extract_features, features=features, data_type=data_type, data_label=data_label, feat_root=Feat_dir, cached=True), *args_iter, chunksize=1000):
 
-                # results = pool.imap(partial(extract_features, features=features, data_type=data_type, feat_root=Feat_dir, cached=True), *args_iter, chunksize=10)
+                            print(f'Got result: {result.shape}', flush=True)
 
-                for result in pool.imap(partial(extract_features, features=features, data_type=data_type, feat_root=Feat_dir, cached=True), *args_iter, chunksize=1000):
+                    # for nf, file in enumerate(files):
+                    #     Tx = extract_features(data_dir + file + audio_ext, features=features, data_label=data_label,
+                    #         data_type=data_type, feat_root=Feat_dir, cached=True)
+                    #     print(Tx.shape)
 
-                    print(f'Got result: {result.shape}', flush=True)
+            if data_type == 'eval':
 
-                # print(results)
+                print(protocol_path)
+
+                if db_type == 'in_the_wild':
+                    df = pd.read_csv(protocol_path, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
+                    df = df.iloc[1:,:]
+                    files = df["AUDIO_FILE_NAME"].values
+                    print(df)
+                    print(len(files))
+
+                    args_iter = list(repeat(data_dir + '/' + files, 1))
+
+                elif db_type == 'asvspoof':
+                    df = pd.read_csv(protocol_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+                    df = df[df["Laundering_Param"] == laundering_param]
+                    files = df["AUDIO_FILE_NAME"].values
+                    print(df)
+                    print(len(files))
+
+                    args_iter = list(repeat(data_dir + '/' + files + audio_ext, 1))
+                
+                print(*args_iter)
+
+                with Pool(processes=6) as pool:
+
+                    # starmap_with_kwargs(pool, extract_features, args_iter, kwargs_iter)
+
+                    # results = pool.imap(partial(extract_features, features=features, data_type=data_type, feat_root=Feat_dir, cached=True), *args_iter, chunksize=10)
+
+                    for result in pool.imap(partial(extract_features, features=features, data_type=data_type, feat_root=Feat_dir, cached=True), *args_iter, chunksize=1000):
+
+                        print(f'Got result: {result.shape}', flush=True)
+
+                    # print(results)
                     
 
 

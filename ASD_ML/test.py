@@ -14,18 +14,27 @@ features = config.feature_type
 # configs - GMM parameters
 ncomp = config.n_comp
 
+db_folder = config.db_folder  # put your database root path here
+db_type = config.db_type
+
+laundering_type = config.laundering_type
 laundering_param = config.laundering_param
-# processing = '-RT-0-3'
+protocol_pth = config.protocol_filenames[0]
+
+score_dir = config.score_dir
+
+if not os.path.exists(score_dir):
+        os.makedirs(score_dir)
 
 # score file to write
-scores_file = os.path.join(config.score_dir, 'scores-' + features + '-gmm-' + str(ncomp) + '-' + laundering_param + '-' + config.db_type + '.txt')
+scores_file = os.path.join(score_dir, 'scores-' + features + '-gmm-' + str(ncomp) + '-' + laundering_param + '-' + config.db_type + '.txt')
 
 print(scores_file)
 
 # bona_path = 'gmm_' + str(ncomp) + '_LA_cqcc' + '_bonafide'
 # spoof_path = 'gmm_' + str(ncomp) + '_LA_cqcc' + '_spoof'
 
-model_dir = 'gmm_' + str(ncomp) + '_LA_' + features
+model_dir = 'gmm_' + str(ncomp) + '_LA_' + features + '_' + 'train_laundered'
 bona_path = os.path.join(model_dir, 'bonafide', 'gmm_final.pkl')
 spoof_path = os.path.join(model_dir, 'spoof', 'gmm_final.pkl')
 
@@ -33,20 +42,13 @@ dict_file = dict()
 dict_file['bona'] = bona_path
 dict_file['spoof'] = spoof_path
 
-db_folder = config.db_folder  # put your database root path here
-db_type = config.db_type
-
-laundering_type = config.laundering_type
-laundering_param = config.laundering_param
-protocol_pth = config.protocol_filename
-
 # laundering_type = 'Transcoding/'
 # laundering = 'Asvspoof19_40_audio_facebook/'
 # protocol_pth = 'Asvspoof19_40_protocol.csv'
 
 if db_type == 'in_the_wild':
         eval_folder = os.path.join(db_folder, 'release_in_the_wild')
-elif db_type == 'asvspoof':
+elif db_type == 'asvspoof_eval_laundered':
         eval_folder = os.path.join(db_folder, 'flac')
 
 eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth)
@@ -61,7 +63,7 @@ if db_type == 'in_the_wild':
         print(df)
         print(len(files))
 
-elif db_type == 'asvspoof':
+elif db_type == 'asvspoof_eval_laundered':
         df = pd.read_csv(eval_ndx, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
         df = df[df["Laundering_Param"] == laundering_param]
         files = df["AUDIO_FILE_NAME"].values
