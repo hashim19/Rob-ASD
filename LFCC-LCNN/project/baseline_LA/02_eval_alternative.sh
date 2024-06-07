@@ -52,11 +52,11 @@ source $PWD/../../env.sh
 # ls ${eval_wav_dir} | xargs -I{} basename {} .wav | xargs -I{} basename {} .flac > ${eval_set_name}.lst
 
 eval_set_name="${laundering_type}_${laundering_param}"
-# eval_wav_dir="${db_folder}/flac/"
-eval_wav_dir="${db_folder}/release_in_the_wild/"
+eval_wav_dir="${db_folder}/flac/"
+# eval_wav_dir="${db_folder}/release_in_the_wild/"
 
-# protocol_filename="${db_folder}/protocols/ASVspoofLauneredDatabase_${laundering_type}.txt"
-protocol_filename="${db_folder}/protocols/meta.csv"
+protocol_filename="${db_folder}/protocols/ASVspoofLauneredDatabase_${laundering_type}.txt"
+# protocol_filename="${db_folder}/protocols/meta.csv"
 
 
 echo -e $eval_set_name
@@ -65,20 +65,20 @@ echo -e $eval_set_name
 
 ############# for ASVSpoofLaunderedDatabase ##########
 # save the required filenames into an array
-# filename_lst=( $(awk -v a="$laundering_param" '$6 == a {print $2}' ${protocol_filename}) )
+filename_lst=( $(awk -v a="$laundering_param" '$6 == a {print $2}' ${protocol_filename}) )
 
 # save the array into a list
-# # echo "${filename_lst[*]}" > ${eval_set_name}.lst
-# printf "%s\n" "${filename_lst[@]}" > ${eval_set_name}.lst
+# echo "${filename_lst[*]}" > ${eval_set_name}.lst
+printf "%s\n" "${filename_lst[@]}" > ${eval_set_name}.lst
 
 ############# for in the wild dataset ################
-ls ${eval_wav_dir} | xargs -I{} basename {} .wav | xargs -I{} basename {} .flac > ${eval_set_name}.lst
+# ls ${eval_wav_dir} | xargs -I{} basename {} .wav | xargs -I{} basename {} .flac > ${eval_set_name}.lst
 
 # step3. export for config_auto.py
 export TEMP_DATA_NAME=${eval_set_name}
 export TEMP_DATA_DIR=${eval_wav_dir}
 
-score_file_dir=$PWD/../../../Score_Files/
+score_file_dir=$PWD/../../../Score_Files_laundered_train
 
 # echo -e ${score_file_dir}
 
