@@ -23,12 +23,16 @@ __copyright__ = "Copyright 2021, Xin Wang"
 # Name of datasets (any string you wish to use)
 #  after data preparation, trn/val_set_name are used to save statistics 
 #  about the data sets
-trn_set_name = 'asvspoof2021_trn_toy'
-val_set_name = 'asvspoof2021_val_toy'
+# trn_set_name = 'asvspoof2021_trn_toy'
+# val_set_name = 'asvspoof2021_val_toy'
+
+trn_set_name = 'asvspoof2021_trn_launder'
+val_set_name = 'asvspoof2021_val_launder'
 
 # for convenience
 #  we will use resources in this directory
-tmp = os.path.dirname(__file__) + '/../DATA/toy_example'
+tmp = os.path.dirname(__file__) + '/../DATA/ASVSpoof_Laundered'
+# tmp = os.path.dirname(__file__) + '/../DATA/toy_example'
 
 # File lists (text file, one data name per line, without name extension)
 # trin_file_list: list of files for training set
@@ -51,7 +55,7 @@ input_dims = [1]
 # File name extension for input features
 #  input_exts = [name_extention_of_feature_1, ...]
 #  here, we only use waveform, thus it is ".flac"
-input_exts = ['.wav']
+input_exts = ['.flac']
 
 # Temporal resolution for input features
 # input_reso = [reso_feature_1, reso_feature_2, ...]

@@ -4,13 +4,18 @@ import json
 import shutil
 from resnet import setup_seed, ResNet
 from loss import *
-from dataset import ASVspoof2019
+from dataset import ASVspoof2019, ASVspoofLaundered
 from collections import defaultdict
 from tqdm import tqdm
 import eval_metrics as em
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+
+import sys
+sys.path.append("../")
+
+import config as config
 
 torch.set_default_tensor_type(torch.FloatTensor)
 
@@ -20,9 +25,9 @@ def initParams():
     # Data folder prepare
     parser.add_argument("-a", "--access_type", type=str, help="LA or PA", default='LA')
     parser.add_argument("-f", "--path_to_features", type=str, help="features path",
-                        default='/dataNVME/neil/ASVspoof2019LAFeatures/')
+                        default=os.path.join(config.feat_dir, config.laundering_type, config.laundering_param, 'lfcc_features_airasvspoof'))
     parser.add_argument("-p", "--path_to_protocol", type=str, help="protocol path",
-                        default='/data/neil/DS_10283_3336/LA/ASVspoof2019_LA_cm_protocols/')
+                        default=os.path.join(config.db_folder, 'protocols'))
     parser.add_argument("-o", "--out_fold", type=str, help="output folder", required=True, default='./models/try/')
 
     # Dataset prepare
@@ -114,10 +119,16 @@ def train(args):
     lfcc_optimizer = torch.optim.Adam(lfcc_model.parameters(), lr=args.lr,
                                       betas=(args.beta_1, args.beta_2), eps=args.eps, weight_decay=0.0005)
 
-    training_set = ASVspoof2019(args.access_type, args.path_to_features, args.path_to_protocol, 'train',
-                                'LFCC', feat_len=args.feat_len, padding=args.padding)
-    validation_set = ASVspoof2019(args.access_type, args.path_to_features, args.path_to_protocol, 'dev',
-                                  'LFCC', feat_len=args.feat_len, padding=args.padding)
+    # training_set = ASVspoof2019(args.access_type, args.path_to_features, args.path_to_protocol, 'train',
+    #                             'LFCC', feat_len=args.feat_len, padding=args.padding)
+    # validation_set = ASVspoof2019(args.access_type, args.path_to_features, args.path_to_protocol, 'dev',
+    #                               'LFCC', feat_len=args.feat_len, padding=args.padding)
+
+    training_set = ASVspoofLaundered(args.path_to_features, args.path_to_protocol, config.protocol_filenames, 'train',
+                                     'LFCC', genuine_only = True, feat_len=args.feat_len, padding=args.padding)
+    validation_set = ASVspoofLaundered(args.path_to_features, args.path_to_protocol, config.protocol_filenames, 'dev',
+                                       'LFCC', genuine_only = True, feat_len=args.feat_len, padding=args.padding)
+    
     trainDataLoader = DataLoader(training_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
                                  collate_fn=training_set.collate_fn)
     valDataLoader = DataLoader(validation_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,

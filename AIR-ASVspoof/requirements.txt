@@ -6,3 +6,4 @@ pandas
 librosa
 tqdm
 matplotlib
+h5py
