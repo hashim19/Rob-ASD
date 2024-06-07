@@ -10,14 +10,14 @@ db_type = 'asvspoof_eval_laundered' # asvspoof_eval_laundered or in_the_wild or 
 db_folder = '/data/Data/ASVSpoofLaunderedDatabase/ASVSpoofLaunderedDatabase'
 
 # only used for training
-data_names = ['ASVspoof2019_LA_train', 'ASVspoof2019_LA_dev', 'ASVSpoofData_2019_train_10_percent_laundered']
-# data_names = ['flac']
+# data_names = ['ASVspoof2019_LA_train', 'ASVspoof2019_LA_dev', 'ASVSpoofData_2019_train_10_percent_laundered']
+data_names = ['flac']
 
 # laundering type and laundering parameter, 
 # look at the readme file of the database for laundering parameters for each laundering type
 
 laundering_type = 'Noise_Addition' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
-laundering_param = 'babble_10'         # random for laundered traning, wild for in the wild
+laundering_param = 'cafe_0'         # random for laundered traning, wild for in the wild
 
 # laundering_type = 'train_laundered' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
 # laundering_param = 'random'         # random for laundered traning, wild for in the wild
@@ -27,7 +27,7 @@ feat_dir = '/data/Features/'
 
 # type of feature to compute, one of cqcc, lfcc, or mfcc
 feature_type = 'cqcc'
-feature_format = 'h5f' # h5f or pkl
+feature_format = 'pkl' # h5f or pkl
 
 audio_ext = '.flac'
 # data_types = ['train', 'dev', 'train']
