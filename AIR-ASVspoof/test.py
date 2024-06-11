@@ -38,7 +38,7 @@ def test_model(feat_model_path, loss_model_path, part, add_loss, device, data_di
         test_set = ASVspoof2019("LA", feat_path, protocol_file_path, part, "LFCC", feat_len=750, padding="repeat")
     
     elif config.db_type == 'asvspoof_eval_laundered':
-        test_set =  ASVspoofLaundered(feat_path, protocol_file_path, config.protocol_filenames, part, "LFCC", feat_len=750, padding="repeat", feature_format='h5f')
+        test_set =  ASVspoofLaundered(feat_path, protocol_file_path, config.protocol_filenames, part, "LFCC", feat_len=750, padding="repeat", feature_format=config.feature_format)
 
     testDataLoader = DataLoader(test_set, batch_size=32, shuffle=False, num_workers=0,
                                 collate_fn=test_set.collate_fn)

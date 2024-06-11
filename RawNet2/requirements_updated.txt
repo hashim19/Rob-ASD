@@ -1,0 +1,6 @@
+numba
+numpy
+librosa
+pyyaml
+tensorboardX
+pandas

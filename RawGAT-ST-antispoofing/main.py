@@ -323,5 +323,5 @@ if __name__ == '__main__':
     #     torch.save(model.state_dict(), os.path.join(
     #         model_save_path, 'epoch_{}.pth'.format(epoch)))
 
-    print("removing the temporary protocol file!")
-    os.remove(eval_ndx)
+    # print("removing the temporary protocol file!")
+    # os.remove(eval_ndx)
