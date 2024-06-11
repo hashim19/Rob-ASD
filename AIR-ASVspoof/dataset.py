@@ -242,7 +242,8 @@ class ASVspoofLaundered(Dataset):
                 with h5py.File(h5_file, 'r') as h5f:
                     feat_mat = h5f[filename][()]
 
-            elif self.feature_format == '.pkl':
+            elif self.feature_format == 'pkl':
+                print(self.ptf + '/' + filename + '.pkl')
                 with open(self.ptf + '/' + filename + '.pkl', 'rb') as feature_handle:
                     feat_mat = pickle.load(feature_handle)
         except:
