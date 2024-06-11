@@ -13,7 +13,7 @@ feat_dir = '/data/Features/'
 
 feat_out_dir = 'npy'
 
-laundering_type = 'Noise_Addition'
+laundering_type = 'Filtering'
 # laundering_params = ['AsvSpoofData_2019_babble_0_0_5', 'AsvSpoofData_2019_babble_10_10_5', 'AsvSpoofData_2019_babble_20_20_5', 'AsvSpoofData_2019_cafe_0_0_5', 'AsvSpoofData_2019_cafe_10_10_5',
 #                         'AsvSpoofData_2019_cafe_20_20_5', 'AsvSpoofData_2019_street_0_0_5', 'AsvSpoofData_2019_street_10_10_5', 'AsvSpoofData_2019_street_20_20_5',
 #                         'AsvSpoofData_2019_volvo_0_0_5', 'AsvSpoofData_2019_volvo_10_10_5', '']
