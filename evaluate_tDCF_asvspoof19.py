@@ -13,8 +13,8 @@ def gen_score_file(score_file, protocl_file, out_dir='out_dir'):
     # read protocol file using pandas 
     if config.db_type == 'in_the_wild':
         evalprotcol = pd.read_csv(protocl_file, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
-    elif config.db_type == 'asvspoof':      
-        evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_for_LA", "SYSTEM_ID", "KEY"])
+    elif config.db_type == 'asvspoof_eval_laundered':      
+        evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY","Laundering_Type", "Laundering_Param"])
     # evalprotcol = pd.read_csv(protocl_file, sep=",", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"])
 
     print(evalprotcol)
@@ -36,7 +36,7 @@ def gen_score_file(score_file, protocl_file, out_dir='out_dir'):
 
     out_file = out_file + '-labels.txt'
 
-    score_df.to_csv(out_dir + out_file, sep=" ", header=None, index=False)
+    score_df.to_csv(os.path.join(out_dir, out_file), sep=" ", header=None, index=False)
 
 def compute_equal_error_rate(cm_score_file):
 
@@ -99,8 +99,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # protocol_file_path = args.score_file_dir + args.protocol_filename
-    protocol_file_path = os.path.join(config.db_folder, 'protocols', args.protocol_filename)
-    score_file_path = args.score_file_dir + args.score_filename
+    protocol_file_path = os.path.join(config.db_folder, 'protocols', config.protocol_filenames[0])
+    # protocol_file_path = os.path.join('/data/Data/AsvSpoofData_2019_protocols', 'RT_0_3_protocol.txt')
+
+    score_file_path = os.path.join(args.score_file_dir, args.score_filename)
 
     if args.score_file_has_keys:
         compute_equal_error_rate(score_file_path)
