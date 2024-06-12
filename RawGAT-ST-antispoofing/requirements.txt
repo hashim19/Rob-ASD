@@ -6,3 +6,4 @@ pyyaml==5.4.1
 tensorboardX==2.2
 SoundFile
 pandas
+protobuf==3.20.*
