@@ -10,7 +10,7 @@ import yaml
 import torch
 from torch import nn
 from model import RawGAT_ST  # In main model script we used our best RawGAT-ST-mul model. To use other models you need to call revelant model scripts from RawGAT_models folder
-# from tensorboardX import SummaryWriter
+from tensorboardX import SummaryWriter
 from core_scripts.startup_config import set_random_seed
 
 import sys
@@ -82,7 +82,7 @@ def produce_evaluation_file(dataset, model, device, save_path):
 
         # add outputs
 
-        if config.db_type == 'asvspoof':
+        if config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_train_laundered':
 
             fname_list.extend(list(batch_meta[1]))
             key_list.extend(
@@ -183,9 +183,9 @@ if __name__ == '__main__':
     parser.add_argument('--track', type=str, default='logical',choices=['logical', 'physical'], help='logical/physical')
     parser.add_argument('--eval_output', type=str, default=None,
                         help='Path to save the evaluation result')
-    parser.add_argument('--eval', action='store_true', default=True,
+    parser.add_argument('--eval', action='store_true', default=False,
                         help='eval mode')
-    parser.add_argument('--is_eval', action='store_true', default=True,help='eval database')
+    parser.add_argument('--is_eval', action='store_true', default=False,help='eval database')
     parser.add_argument('--eval_part', type=int, default=0)
     parser.add_argument('--features', type=str, default='Raw_GAT')
 
@@ -201,34 +201,75 @@ if __name__ == '__main__':
     ############ Assign configuration parameters ###########
     db_folder = config.db_folder  # put your database root path here
     db_type = config.db_type
+    data_names = config.data_names
 
     laundering_type = config.laundering_type
     laundering_param = config.laundering_param
-    protocol_pth = config.protocol_filename
-
-    if db_type == 'in_the_wild':
-        eval_folder = os.path.join(db_folder, 'release_in_the_wild')
-        evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
-        evalprotcol = pd.read_csv(evalProtocolFile, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
-
-        eval_ndx = evalProtocolFile
-
-    elif db_type == 'asvspoof':
-        eval_folder = os.path.join(db_folder, 'flac')
-        evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
-
-        # read eval protocol
-        evalprotcol = pd.read_csv(evalProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
-
-        # create a temporary protocol file, this file will be used by test.py
-        evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
-        evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
-        evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
-        evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
-
-        eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
-
+    protocol_filenames = config.protocol_filenames
     audio_ext = config.audio_ext
+    data_types = config.data_types
+    data_labels = config.data_labels
+
+    eval_pf_ls = []
+    train_pf_ls = []
+    dev_pf_ls = []
+
+    pathToDatabase = []
+    pathToDatabase_train = []
+    pathToDatabase_dev = []
+
+    for data_name, protocol_filename, data_type in zip(data_names, protocol_filenames, data_types):
+
+        print(data_name)
+        print(protocol_filename)
+        print(data_type)
+
+        # read protocol file
+        if data_type == 'eval':
+
+            evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_filename)
+
+            # read eval protocol
+            if db_type == 'in_the_wild':
+                pathToDatabase = os.path.join(db_folder, 'release_in_the_wild')
+
+                eval_pf_ls.append(evalProtocolFile)
+
+            elif db_type == 'asvspoof_eval_laundered':
+                pathToDatabase = os.path.join(db_folder, 'flac')
+
+                evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+                
+                # create a temporary protocol file, this file will be used by test.py
+                evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+                evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+                evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
+                evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+
+                evalProtocolFile_tmp = os.path.join(db_folder, 'protocols', evalProtocolFile.split('.')[0] + '_' 'tmp.txt')
+
+                eval_pf_ls.append(evalProtocolFile_tmp)
+
+        elif data_type == 'train' or data_type == 'dev':
+
+            pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+
+            protocol_file_path = os.path.join(db_folder, 'protocols', protocol_filename)
+
+            # protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+
+            # protocol_df.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+
+            # protocol_file_path = os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt')
+
+            if data_type == 'train':
+                train_pf_ls.append(protocol_file_path)
+                pathToDatabase_train.append(pathToDatabase)
+
+            elif data_type == 'dev':
+                dev_pf_ls.append(protocol_file_path)
+                pathToDatabase_dev.append(pathToDatabase)
+
 
     eval_out = os.path.join(config.score_dir, 'RawGAT_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
 
@@ -274,13 +315,6 @@ if __name__ == '__main__':
     #GPU device
     device = 'cuda' if torch.cuda.is_available() else 'cpu'                  
     print('Device: {}'.format(device))
-
-    # validation Dataloader
-    eval_set = data_utils.ASVDataset(database_path=eval_folder, protocols_path=eval_ndx, is_train=False, is_logical=is_logical,
-                                    transform=transforms, feature_name=args.features, is_eval=args.is_eval, eval_part=args.eval_part,
-                                    ext=audio_ext, db_type=db_type)
-    # dev_loader = DataLoader(dev_set, batch_size=args.batch_size, shuffle=True)
-    
     
     #model 
     model = RawGAT_ST(parser1['model'], device)
@@ -300,28 +334,46 @@ if __name__ == '__main__':
     if args.eval:
         # assert args.eval_output is not None, 'You must provide an output path'
         # assert args.model_path is not None, 'You must provide model checkpoint'
+
+        # evaluation Dataloader
+        print(pathToDatabase)
+        print(eval_pf_ls)
+        eval_set = data_utils.ASVDataset(database_path=pathToDatabase, protocols_path=eval_pf_ls, is_train=False, is_logical=is_logical,
+                                         transform=transforms, feature_name=args.features, is_eval=args.is_eval, eval_part=args.eval_part,
+                                         ext=audio_ext, db_type=db_type)
+        
         produce_evaluation_file(eval_set, model, device, eval_out)
         sys.exit(0)
 
-    # # Training Dataloader
-    # train_set = data_utils.ASVDataset(database_path=args.database_path,protocols_path=args.protocols_path,is_train=True, is_logical=is_logical, transform=transforms,
-    #                                   feature_name=args.features)
-    # train_loader = DataLoader(
-    #     train_set, batch_size=args.batch_size, shuffle=True)
+    # Training Dataloader
+    train_set = data_utils.ASVDataset(database_path=pathToDatabase_train, protocols_path=train_pf_ls, is_train=True, is_logical=is_logical,
+                                      transform=transforms, feature_name=args.features, is_eval=False, eval_part=args.eval_part,
+                                      ext=audio_ext, db_type=db_type)
+    
+    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
 
-    # # Training and validation 
-    # num_epochs = args.num_epochs
-    # writer = SummaryWriter('logs/{}'.format(model_tag))
-    # for epoch in range(num_epochs):
+    # validation Dataloader
+    dev_set = data_utils.ASVDataset(database_path=pathToDatabase_dev, protocols_path=dev_pf_ls, is_train=False, is_logical=is_logical,
+                                    transform=transforms, feature_name=args.features, is_eval=False, eval_part=args.eval_part,
+                                    ext=audio_ext, db_type=db_type)
+    
+    dev_loader = DataLoader(dev_set, batch_size=args.batch_size, shuffle=True)
+
+    # Training and validation 
+    num_epochs = args.num_epochs
+    writer = SummaryWriter('logs/{}'.format(model_tag))
+    for epoch in range(num_epochs):
         
-    #     running_loss = train_epoch(train_loader,model, args.lr,optimizer, device)
-    #     val_loss = evaluate_accuracy(dev_loader, model, device)
-    #     writer.add_scalar('val_loss', val_loss, epoch)
-    #     writer.add_scalar('loss', running_loss, epoch)
-    #     print('\n{} - {} - {} '.format(epoch,
-    #                                                running_loss,val_loss))
-    #     torch.save(model.state_dict(), os.path.join(
-    #         model_save_path, 'epoch_{}.pth'.format(epoch)))
+        running_loss = train_epoch(train_loader,model, args.lr,optimizer, device)
+        val_loss = evaluate_accuracy(dev_loader, model, device)
+        writer.add_scalar('val_loss', val_loss, epoch)
+        writer.add_scalar('loss', running_loss, epoch)
+        print('\n{} - {} - {} '.format(epoch,
+                                                   running_loss,val_loss))
+        torch.save(model.state_dict(), os.path.join(
+            model_save_path, 'epoch_{}.pth'.format(epoch)))
+
+
 
     # print("removing the temporary protocol file!")
     # os.remove(eval_ndx)
