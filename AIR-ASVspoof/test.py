@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
-from dataset import ASVspoof2019, InTheWild
+from dataset import ASVspoof2019, InTheWild, ASVspoofLaundered
 from evaluate_tDCF_asvspoof19 import compute_eer_and_tdcf
 from tqdm import tqdm
 import eval_metrics as em
@@ -33,8 +33,12 @@ def test_model(feat_model_path, loss_model_path, part, add_loss, device, data_di
 
     if config.db_type == 'in_the_wild':
         test_set = InTheWild(feat_path, protocol_file_path, part, "LFCC", feat_len=750, padding="repeat")
+    
     elif config.db_type == 'asvspoof':
         test_set = ASVspoof2019("LA", feat_path, protocol_file_path, part, "LFCC", feat_len=750, padding="repeat")
+    
+    elif config.db_type == 'asvspoof_eval_laundered':
+        test_set =  ASVspoofLaundered(feat_path, protocol_file_path, config.protocol_filenames, part, "LFCC", feat_len=750, padding="repeat", feature_format=config.feature_format)
 
     testDataLoader = DataLoader(test_set, batch_size=32, shuffle=False, num_workers=0,
                                 collate_fn=test_set.collate_fn)
@@ -160,7 +164,7 @@ if __name__ == "__main__":
     # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     # args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model_dir = "./models/ocsoftmax"
+    model_dir = "./models_laundered/ocsoftmax"
     loss = "ocsoftmax"
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -170,12 +174,13 @@ if __name__ == "__main__":
 
     laundering_type = config.laundering_type
     laundering_param = config.laundering_param
-    protocol_pth = config.protocol_filename
+    protocol_pth = config.protocol_filenames[0]
 
     if db_type == 'in_the_wild':
         eval_folder = os.path.join(db_folder, 'release_in_the_wild')
         eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth)
-    elif db_type == 'asvspoof':
+        
+    elif db_type == 'asvspoof_eval_laundered':
         eval_folder = os.path.join(db_folder, 'flac')
         eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
 

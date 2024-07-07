@@ -8,8 +8,8 @@ import os
 import logging
 import time
 import h5py
-from Asvspoof_dataset import PKL_dataset, open_pkl, gmm_custom_collate
-from extract_features import extract_features
+from .Asvspoof_dataset import PKL_dataset, open_pkl, gmm_custom_collate
+from .extract_features import extract_features
 from scipy.special import logsumexp
 
 import sys
@@ -253,4 +253,6 @@ def scoring(scores_file, dict_file, features, eval_file_list, eval_folder, audio
     pd_out.to_csv(scores_file, sep=' ', header=False, index=False)
 
     logging.info('\t... scoring completed.\n')
+
+    return pd_out
 
