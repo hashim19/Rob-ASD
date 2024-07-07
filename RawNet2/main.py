@@ -240,7 +240,7 @@ if __name__ == '__main__':
     dir_yaml = os.path.splitext('model_config_RawNet')[0] + '.yaml'
 
     with open(dir_yaml, 'r') as f_yaml:
-            parser1 = yaml.load(f_yaml, yaml.Loader)
+        parser1 = yaml.load(f_yaml, yaml.Loader)
 
     if not os.path.exists('models'):
         os.mkdir('models')

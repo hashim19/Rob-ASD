@@ -22,8 +22,12 @@ laundering_dir = os.path.join(feat_dir, laundering_type)
 laundering_params = os.listdir(laundering_dir)
 # laundering_params = ['babble_0']
 
-# feat_types = ['cqcc_features', 'lfcc_features', 'lfcc_features_airasvspoof']
-feat_types = ['lfcc_features_airasvspoof']
+print(laundering_params)
+# laundering_params.remove('recompression_128k')
+# print(laundering_params)
+
+feat_types = ['cqcc_features', 'lfcc_features', 'lfcc_features_airasvspoof']
+# feat_types = ['lfcc_features_airasvspoof']
 
 
 for lp in laundering_params:
@@ -60,6 +64,14 @@ for lp in laundering_params:
 
                 for i, feat_pkl_file in enumerate(feat_files):
 
+                    # print(feat_pkl_file)
+
+                    filename_ls = feat_pkl_file.split('_')
+
+                    new_filename = '_'.join((filename_ls[0], filename_ls[1], filename_ls[2], 'lpf_7000')) + '.pkl'
+
+                    print(new_filename)
+
                     feat_pkl_fullfile = os.path.join(feat_dir_ft, feat_pkl_file)
 
                     try:
@@ -70,7 +82,8 @@ for lp in laundering_params:
                         print("Not able to open pickle file using normal pickle open method")
 
                         feat_data = pickle_blosc.unpickle(feat_pkl_fullfile)
-                        
+
+                    print(feat_data.shape) 
 
                     print("Saving {} features for file {} at iteration {} in hdf5 format".format(ft, feat_pkl_file, i))
 
@@ -79,7 +92,7 @@ for lp in laundering_params:
 
                     # print(feat_data)
 
-                    dset = h5f.create_dataset(feat_pkl_file.split('.')[0], data=feat_data, dtype=np.float32)
+                    dset = h5f.create_dataset(new_filename.split('.')[0], data=feat_data, dtype=np.float32)
 
         else:
 

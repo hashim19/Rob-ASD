@@ -1,0 +1,9 @@
+-e ./ASD_ML/Feature_Library/CQCC
+soundfile
+librosa
+h5py
+torch
+pickle_blosc
+spafe
+tqdm
+pyaml
