@@ -13,12 +13,17 @@ def genSpoof_list(dir_meta, is_train=False, is_eval=False):
 
     d_meta = {}
     file_list = []
-    with open(dir_meta, "r") as f:
-        l_meta = f.readlines()
+    l_meta = []
+
+    print(dir_meta)
+    for prot_meta in dir_meta:
+
+        with open(prot_meta, "r") as f:
+            l_meta.extend(f.readlines())
 
     if is_train:
         for line in l_meta:
-            _, key, _, _, label = line.strip().split(" ")
+            _, key, _, _, label = line.strip().split(" ")[:5]
             file_list.append(key)
             d_meta[key] = 1 if label == "bonafide" else 0
         return d_meta, file_list
@@ -74,20 +79,29 @@ def pad_random(x: np.ndarray, max_len: int = 64600):
 
 
 class Dataset_ASVspoof2019_train(Dataset):
-    def __init__(self, list_IDs, labels, base_dir):
+    def __init__(self, list_IDs, labels, base_dir, audio_ext):
         """self.list_IDs	: list of strings (each string: utt key),
            self.labels      : dictionary (key: utt key, value: label integer)"""
         self.list_IDs = list_IDs
         self.labels = labels
         self.base_dir = base_dir
         self.cut = 64600  # take ~4 sec audio (64600 samples)
+        self.audio_ext = audio_ext
 
     def __len__(self):
         return len(self.list_IDs)
 
     def __getitem__(self, index):
         key = self.list_IDs[index]
-        X, _ = sf.read(str(self.base_dir / f"flac/{key}.flac"))
+
+        for bd in self.base_dir:
+            file_path = os.path.join(bd, str(key) + self.audio_ext)
+
+            if os.path.isfile(file_path):
+                break
+
+        X, _ = sf.read(file_path)
+        
         X_pad = pad_random(X, self.cut)
         x_inp = Tensor(X_pad)
         y = self.labels[key]
@@ -109,7 +123,13 @@ class Dataset_ASVspoof2019_devNeval(Dataset):
     def __getitem__(self, index):
         key = self.list_IDs[index]
         # X, _ = sf.read(str(self.base_dir / f"flac/{key}.flac"))
-        file_path = os.path.join(self.base_dir, str(key) + self.audio_ext)
+
+        for bd in self.base_dir:
+            file_path = os.path.join(bd, str(key) + self.audio_ext)
+
+            if os.path.isfile(file_path):
+                break
+
         X, _ = sf.read(file_path)
         X_pad = pad(X, self.cut)
         x_inp = Tensor(X_pad)

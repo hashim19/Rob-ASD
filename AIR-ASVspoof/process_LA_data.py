@@ -4,6 +4,7 @@ import librosa
 import numpy as np
 from scipy.signal import lfilter
 import pickle
+import h5py
 
 import sys
 sys.path.append("../")
@@ -64,20 +65,126 @@ if __name__ == "__main__":
     ############ For post processed Data ###########
     db_folder = config.db_folder  # put your database root path here
     db_type = config.db_type
+    data_names = config.data_names
 
     laundering_type = config.laundering_type
     laundering_param = config.laundering_param
-    protocol_pth = config.protocol_filename
-    
-    if db_type == 'in_the_wild':
-        pathToDatabase = os.path.join(db_folder, 'release_in_the_wild')
-    elif db_type == 'asvspoof':
-        pathToDatabase = os.path.join(db_folder, 'flac')
+    protocol_filenames = config.protocol_filenames
 
-    evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_pth)
-    pathToFeatures = os.path.join(config.feat_dir, laundering_type, laundering_param, 'lfcc_features_airasvspoof')
+    Feat_dir = os.path.join(config.feat_dir, laundering_type, laundering_param, 'lfcc_features_airasvspoof')
+
+    features = config.feature_type
 
     audio_ext = config.audio_ext
+    data_types = config.data_types
+    data_labels = config.data_labels
+    
+    # if db_type == 'in_the_wild':
+    #     pathToDatabase = os.path.join(db_folder, 'release_in_the_wild')
+    # elif db_type == 'asvspoof':
+    #     pathToDatabase = os.path.join(db_folder, 'flac')
+
+    # evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_filenames)
+    # pathToFeatures = os.path.join(config.feat_dir, laundering_type, laundering_param, 'lfcc_features_airasvspoof')
+
+    audio_ext = config.audio_ext
+
+    for data_name, protocol_filename, data_type in zip(data_names, protocol_filenames, data_types):
+
+        print(data_name)
+        print(protocol_filename)
+        print(data_type)
+
+        # read protocol file
+        if data_type == 'eval':
+
+            evalProtocolFile = os.path.join(db_folder, 'protocols', protocol_filename)
+
+            # read eval protocol
+            if db_type == 'in_the_wild':
+                pathToDatabase = os.path.join(db_folder, 'release_in_the_wild')
+
+                evalprotcol = pd.read_csv(evalProtocolFile, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
+                filelist = evalprotcol["AUDIO_FILE_NAME"].to_list()
+
+            elif db_type == 'asvspoof_eval_laundered':
+                pathToDatabase = os.path.join(db_folder, 'flac')
+
+                evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+                
+                # create a temporary protocol file, this file will be used by test.py
+                evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+                evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+                evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+
+                filelist = evalprotcol_tmp["AUDIO_FILE_NAME"].to_list()
+
+        elif data_type == 'train' or data_type == 'dev':
+
+            pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+
+            protocol_file_path = os.path.join(db_folder, 'protocols', protocol_filename)
+
+            protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+
+            filelist = protocol_df["AUDIO_FILE_NAME"].to_list()
+
+        ############ Feature extraction for Evaluation data ##############
+
+        # extract features for evaluation data and store them
+        print('Extracting features for {} data...'.format(data_type))
+
+        LFCC_sav_dir = os.path.join(Feat_dir, data_type)
+
+        # for h5py file
+        h5_file = Feat_dir + '.h5'
+
+        print(h5_file)
+
+        if not os.path.exists(LFCC_sav_dir):
+            os.makedirs(LFCC_sav_dir)
+
+        if not os.path.exists(h5_file):
+
+            lfcc_features_ls = []
+            for file in filelist:
+
+                LFCC_filename = os.path.join(LFCC_sav_dir, str(file) + '.pkl')
+
+                if not os.path.exists(LFCC_filename):
+
+                    # audio_file = os.path.join(pathToDatabase, 'ASVspoof2019_' + access_type + '_eval/flac', file + '.flac')
+                    audio_file = os.path.join(pathToDatabase, str(file) + audio_ext)
+
+                    x, fs = librosa.load(audio_file)
+                    
+                    lfcc_featues = extract_lfcc(x, fs)
+
+                    print(lfcc_featues.shape)
+
+                    with open(LFCC_filename, 'wb') as f:
+                        pickle.dump(lfcc_featues, f)
+
+                else:
+
+                    print("Feature file {} already extracted".format(file))
+
+        else:
+            with h5py.File(h5_file, 'r') as h5f:
+                # for filename, feature_mat in h5f.items():
+                    # print(filename)
+                
+                # print("Keys: %s" % h5f.keys())
+                key = list(h5f.keys())[0]
+                print(key)
+                data = h5f[key][()]
+                print(data.shape)
+                # lfcc_features = h5f['LA_E_1524908_RT_0_3']
+                # print(lfcc_featues)
+            print("Features were already extracted and were saved in {} ".format(h5_file))
+
+        print("Done")
+
 
 
     # # read train protocol
@@ -88,36 +195,99 @@ if __name__ == "__main__":
     # devprotcol = pd.read_csv(devProtocolFile, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_for_LA", "SYSTEM_ID", "KEY"])
     # devfilelist = devprotcol["AUDIO_FILE_NAME"].to_list()
 
-    # read eval protocol
-    if db_type == 'in_the_wild':
-        evalprotcol = pd.read_csv(evalProtocolFile, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
-        evalfilelist = evalprotcol["AUDIO_FILE_NAME"].to_list()
+    # # read eval protocol
+    # if db_type == 'in_the_wild':
+    #     evalprotcol = pd.read_csv(evalProtocolFile, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
+    #     evalfilelist = evalprotcol["AUDIO_FILE_NAME"].to_list()
 
-    elif db_type == 'asvspoof':
-        evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+    # elif db_type == 'asvspoof':
+    #     evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
         
-        # create a temporary protocol file, this file will be used by test.py
-        evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
-        evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
-        evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+    #     # create a temporary protocol file, this file will be used by test.py
+    #     evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+    #     evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+    #     evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
 
-        evalfilelist = evalprotcol_tmp["AUDIO_FILE_NAME"].to_list()
+    #     evalfilelist = evalprotcol_tmp["AUDIO_FILE_NAME"].to_list()
 
-    ############ Feature extraction for training data ##############
+    # ############ Feature extraction for training data ##############
 
-    # # extract features for training data and store them
-    # print('Extracting features for training data...')
+    # # # extract features for training data and store them
+    # # print('Extracting features for training data...')
 
-    # LFCC_sav_dir = os.path.join(pathToFeatures, 'train')
+    # # LFCC_sav_dir = os.path.join(pathToFeatures, 'train')
+
+    # # if not os.path.exists(LFCC_sav_dir):
+    # #     os.makedirs(LFCC_sav_dir)
+
+    # # lfcc_features_ls = []
+    # # for file in trainfilelist:
+    # #     print(file)
+
+    # #     audio_file = os.path.join(pathToDatabase, 'ASVspoof2019_' + access_type + '_train/flac', file + '.flac')
+
+    # #     x, fs = librosa.load(audio_file)
+        
+    # #     lfcc_featues = extract_lfcc(x, fs)
+
+    # #     print(lfcc_featues.shape)
+
+    # #     LFCC_filename = os.path.join(LFCC_sav_dir, 'LFCC_' + file + '.pkl')
+
+    # #     if not os.path.exists(LFCC_filename):
+
+    # #         with open(LFCC_filename, 'wb') as f:
+    # #             pickle.dump(lfcc_featues, f)
+
+    # # print("Done")
+
+
+    # # ############ Feature extraction for Development data ##############
+
+    # # # extract features for development data and store them
+    # # print('Extracting features for development data...')
+
+    # # LFCC_sav_dir = os.path.join(pathToFeatures, 'dev')
+
+    # # if not os.path.exists(LFCC_sav_dir):
+    # #     os.makedirs(LFCC_sav_dir)
+
+    # # lfcc_features_ls = []
+    # # for file in devfilelist:
+
+    # #     audio_file = os.path.join(pathToDatabase, 'ASVspoof2019_' + access_type + '_dev/flac', file + '.flac')
+
+    # #     x, fs = librosa.load(audio_file)
+        
+    # #     lfcc_featues = extract_lfcc(x, fs)
+
+    # #     print(lfcc_featues.shape)
+
+    # #     LFCC_filename = os.path.join(LFCC_sav_dir, 'LFCC_' + file + '.pkl')
+
+    # #     if not os.path.exists(LFCC_filename):
+
+    # #         with open(LFCC_filename, 'wb') as f:
+    # #             pickle.dump(lfcc_featues, f)
+
+    # # print("Done")
+
+
+    # ############ Feature extraction for Evaluation data ##############
+
+    # # extract features for evaluation data and store them
+    # print('Extracting features for evaluation data...')
+
+    # LFCC_sav_dir = os.path.join(pathToFeatures, 'eval')
 
     # if not os.path.exists(LFCC_sav_dir):
     #     os.makedirs(LFCC_sav_dir)
 
     # lfcc_features_ls = []
-    # for file in trainfilelist:
-    #     print(file)
+    # for file in evalfilelist:
 
-    #     audio_file = os.path.join(pathToDatabase, 'ASVspoof2019_' + access_type + '_train/flac', file + '.flac')
+    #     # audio_file = os.path.join(pathToDatabase, 'ASVspoof2019_' + access_type + '_eval/flac', file + '.flac')
+    #     audio_file = os.path.join(pathToDatabase, str(file) + audio_ext)
 
     #     x, fs = librosa.load(audio_file)
         
@@ -125,7 +295,7 @@ if __name__ == "__main__":
 
     #     print(lfcc_featues.shape)
 
-    #     LFCC_filename = os.path.join(LFCC_sav_dir, 'LFCC_' + file + '.pkl')
+    #     LFCC_filename = os.path.join(LFCC_sav_dir, str(file) + '.pkl')
 
     #     if not os.path.exists(LFCC_filename):
 
@@ -133,69 +303,6 @@ if __name__ == "__main__":
     #             pickle.dump(lfcc_featues, f)
 
     # print("Done")
-
-
-    # ############ Feature extraction for Development data ##############
-
-    # # extract features for development data and store them
-    # print('Extracting features for development data...')
-
-    # LFCC_sav_dir = os.path.join(pathToFeatures, 'dev')
-
-    # if not os.path.exists(LFCC_sav_dir):
-    #     os.makedirs(LFCC_sav_dir)
-
-    # lfcc_features_ls = []
-    # for file in devfilelist:
-
-    #     audio_file = os.path.join(pathToDatabase, 'ASVspoof2019_' + access_type + '_dev/flac', file + '.flac')
-
-    #     x, fs = librosa.load(audio_file)
-        
-    #     lfcc_featues = extract_lfcc(x, fs)
-
-    #     print(lfcc_featues.shape)
-
-    #     LFCC_filename = os.path.join(LFCC_sav_dir, 'LFCC_' + file + '.pkl')
-
-    #     if not os.path.exists(LFCC_filename):
-
-    #         with open(LFCC_filename, 'wb') as f:
-    #             pickle.dump(lfcc_featues, f)
-
-    # print("Done")
-
-
-    ############ Feature extraction for Evaluation data ##############
-
-    # extract features for evaluation data and store them
-    print('Extracting features for evaluation data...')
-
-    LFCC_sav_dir = os.path.join(pathToFeatures, 'eval')
-
-    if not os.path.exists(LFCC_sav_dir):
-        os.makedirs(LFCC_sav_dir)
-
-    lfcc_features_ls = []
-    for file in evalfilelist:
-
-        # audio_file = os.path.join(pathToDatabase, 'ASVspoof2019_' + access_type + '_eval/flac', file + '.flac')
-        audio_file = os.path.join(pathToDatabase, str(file) + audio_ext)
-
-        x, fs = librosa.load(audio_file)
-        
-        lfcc_featues = extract_lfcc(x, fs)
-
-        print(lfcc_featues.shape)
-
-        LFCC_filename = os.path.join(LFCC_sav_dir, str(file) + '.pkl')
-
-        if not os.path.exists(LFCC_filename):
-
-            with open(LFCC_filename, 'wb') as f:
-                pickle.dump(lfcc_featues, f)
-
-    print("Done")
 
 
 

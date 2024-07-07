@@ -10,14 +10,20 @@ db_type = 'asvspoof_eval_laundered' # asvspoof_eval_laundered or in_the_wild or 
 db_folder = '/data/Data/ASVSpoofLaunderedDatabase/ASVSpoofLaunderedDatabase'
 
 # only used for training
-data_names = ['ASVspoof2019_LA_train', 'ASVspoof2019_LA_dev', 'ASVSpoofData_2019_train_10_percent_laundered']
-# data_names = ['flac']
+# data_names = ['ASVspoof2019_LA_train', 'ASVspoof2019_LA_dev', 'ASVSpoofData_2019_train_10_percent_laundered']
+data_names = ['flac']
 
 # laundering type and laundering parameter, 
 # look at the readme file of the database for laundering parameters for each laundering type
 
+# laundering_type = 'Reverberation' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
+# laundering_param = 'RT_0_6'         # random for laundered traning, wild for in the wild
+
 laundering_type = 'Noise_Addition' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
-laundering_param = 'babble_10'         # random for laundered traning, wild for in the wild
+laundering_param = 'white_0'         # random for laundered traning, wild for in the wild
+
+# laundering_type = 'Filtering' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
+# laundering_param = 'lpf_7000'         # random for laundered traning, wild for in the wild
 
 # laundering_type = 'train_laundered' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
 # laundering_param = 'random'         # random for laundered traning, wild for in the wild
@@ -26,7 +32,7 @@ laundering_param = 'babble_10'         # random for laundered traning, wild for 
 feat_dir = '/data/Features/'
 
 # type of feature to compute, one of cqcc, lfcc, or mfcc
-feature_type = 'cqcc'
+feature_type = 'lfcc'
 feature_format = 'h5f' # h5f or pkl
 
 audio_ext = '.flac'
@@ -39,6 +45,7 @@ n_comp = 512
 
 # score dir
 score_dir = '../Score_Files_laundered_train'
+# score_dir = '../Score_Files'
 
 ############# no need to set this parameter unless the name of the database is changed #############
 # if db_type == 'in_the_wild':
