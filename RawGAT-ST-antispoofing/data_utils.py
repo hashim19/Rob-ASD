@@ -76,17 +76,17 @@ class ASVDataset(Dataset):
         self.sysid_dict_inv = {v:k for k,v in self.sysid_dict.items()}
         print('sysid_dict_inv',self.sysid_dict_inv)
 
-        self.data_root = data_root
-        print('data_root',self.data_root)
+        # self.data_root = data_root
+        # print('data_root',self.data_root)
 
         self.dset_name = 'eval' if is_eval else 'train' if is_train else 'dev'
         print('dset_name',self.dset_name)
 
-        self.protocols_fname = 'eval.trl' if is_eval else 'train.trn' if is_train else 'dev.trl'
-        print('protocols_fname',self.protocols_fname)
+        # self.protocols_fname = 'eval.trl' if is_eval else 'train.trn' if is_train else 'dev.trl'
+        # print('protocols_fname',self.protocols_fname)
         
-        self.protocols_dir = os.path.join(self.data_root)
-        print('protocols_dir',self.protocols_dir)
+        # self.protocols_dir = os.path.join(self.data_root)
+        # print('protocols_dir',self.protocols_dir)
         
         # self.files_dir = os.path.join(self.data_root_dir, '{}_{}'.format(
         #     self.prefix, self.dset_name ), 'flac')
@@ -108,14 +108,17 @@ class ASVDataset(Dataset):
         #     self.data_x, self.data_y, self.data_sysid, self.files_meta = torch.load(self.cache_fname)
         #     print('Dataset loaded from cache ', self.cache_fname)
         # else:
-        self.files_meta = self.parse_protocols_file(self.protocols_fname, db_type=self.db_type)
+        # self.files_meta = self.parse_protocols_file(self.protocols_fname)
+
+        self.files_meta = [self.parse_protocols_file(pf) for pf in self.protocols_fname][0]
+
         data = list(map(self.read_file, self.files_meta))
 
-        if config.db_type == 'asvspoof':
-            self.data_x, self.data_y, self.data_sysid = map(list, zip(*data))
-        
-        elif config.db_type == 'in_the_wild':
+        if config.db_type == 'in_the_wild':
             self.data_x, self.data_y = map(list, zip(*data))
+
+        else:
+            self.data_x, self.data_y, self.data_sysid = map(list, zip(*data))
         
         if self.transform:
             self.data_x = Parallel(n_jobs=4, prefer='threads')(delayed(self.transform)(x) for x in self.data_x)
@@ -126,7 +129,7 @@ class ASVDataset(Dataset):
             self.files_meta= [self.files_meta[x] for x in select_idx]
             self.data_x = [self.data_x[x] for x in select_idx]
             self.data_y = [self.data_y[x] for x in select_idx]
-            if config.db_type == 'asvspoof':
+            if config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_train_laundered':
                 self.data_sysid = [self.data_sysid[x] for x in select_idx]
             
         self.length = len(self.data_x)
@@ -143,36 +146,43 @@ class ASVDataset(Dataset):
         
         data_x, sample_rate = sf.read(meta.path)
         data_y = meta.key
-        if config.db_type == 'asvspoof':
-            return data_x, float(data_y), meta.sys_id
-        
-        elif config.db_type == 'in_the_wild':
+        if config.db_type == 'in_the_wild':
             return data_x, float(data_y)
+        
+        else:
+            return data_x, float(data_y), meta.sys_id
+            
 
     def _parse_line(self, line):
         tokens = line.strip().split(' ')
         if self.is_eval:
-            if config.db_type == 'asvspoof':
+
+            if config.db_type == 'asvspoof_eval_laundered':
                 return ASVFile(speaker_id=tokens[0],
                     file_name=tokens[1],
                     path=os.path.join(self.files_dir, tokens[1] + self.ext),
                     sys_id=self.sysid_dict[tokens[3]],
                     key=int(tokens[4] == 'bonafide'))
+            
             elif config.db_type == 'in_the_wild':
                 tokens = line.strip().split(',')
                 return WildFile(speaker_id=tokens[1],
                     file_name=tokens[0],
                     path=os.path.join(self.files_dir, tokens[0] + self.ext),
                     key=int(tokens[2] == 'bonafide'))
+
+        audio_file = os.path.join(self.files_dir[0], tokens[1] + self.ext)
+        if not os.path.isfile(audio_file):
+            audio_file = os.path.join(self.files_dir[1], tokens[1] + self.ext)
+
         return ASVFile(speaker_id=tokens[0],
             file_name=tokens[1],
-            path=os.path.join(self.files_dir, tokens[1] + self.ext),
+            path=audio_file,
             sys_id=self.sysid_dict[tokens[3]],
             key=int(tokens[4] == 'bonafide'))
-        
-
+    
    
-    def parse_protocols_file(self, protocols_fname, db_type='asvspoof'):
+    def parse_protocols_file(self, protocols_fname):
         lines = open(protocols_fname).readlines()
         files_meta = map(self._parse_line, lines)
         return list(files_meta)
