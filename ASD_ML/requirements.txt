@@ -7,3 +7,4 @@ librosa
 pycave
 torch==1.13.1
 h5py
+pickle-blosc
