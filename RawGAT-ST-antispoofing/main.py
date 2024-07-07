@@ -273,7 +273,7 @@ if __name__ == '__main__':
 
     eval_out = os.path.join(config.score_dir, 'RawGAT_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
 
-    model_path = './Pre_trained_models/RawGAT_ST_mul/Best_epoch.pth'
+    # model_path = './Pre_trained_models/RawGAT_ST_mul/Best_epoch.pth'
 
 
     dir_yaml = os.path.splitext('model_config_RawGAT_ST')[0] + '.yaml'
@@ -313,7 +313,7 @@ if __name__ == '__main__':
 
 
     #GPU device
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'                  
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'                  
     print('Device: {}'.format(device))
     
     #model 
@@ -325,6 +325,8 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.weight_decay)
     
     
+    model_path = os.path.join(model_save_path, 'epoch_291_Best.pth')
+
     if model_path:
         model.load_state_dict(torch.load(model_path,map_location=device))
         print('Model loaded : {}'.format(model_path))
@@ -362,16 +364,24 @@ if __name__ == '__main__':
     # Training and validation 
     num_epochs = args.num_epochs
     writer = SummaryWriter('logs/{}'.format(model_tag))
+    
+    best_loss = 0.1
     for epoch in range(num_epochs):
         
         running_loss = train_epoch(train_loader,model, args.lr,optimizer, device)
         val_loss = evaluate_accuracy(dev_loader, model, device)
         writer.add_scalar('val_loss', val_loss, epoch)
         writer.add_scalar('loss', running_loss, epoch)
-        print('\n{} - {} - {} '.format(epoch,
-                                                   running_loss,val_loss))
-        torch.save(model.state_dict(), os.path.join(
-            model_save_path, 'epoch_{}.pth'.format(epoch)))
+        print('\n{} - {} - {} '.format(epoch, running_loss, val_loss))
+
+        if val_loss < best_loss:
+            print('best model find at epoch', epoch)
+
+        
+            torch.save(model.state_dict(), os.path.join(
+                model_save_path, 'epoch_{}_{}.pth'.format(epoch, val_loss)))
+
+            best_loss = min(val_loss, best_loss)
 
 
 

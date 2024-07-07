@@ -181,7 +181,7 @@ if __name__ == "__main__":
                 print(data.shape)
                 # lfcc_features = h5f['LA_E_1524908_RT_0_3']
                 # print(lfcc_featues)
-            print("Features were already extracted and are saved in {} ".format(h5_file))
+            print("Features were already extracted and were saved in {} ".format(h5_file))
 
         print("Done")
 

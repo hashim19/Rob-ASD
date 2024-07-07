@@ -6,6 +6,7 @@ import soundfile as sf
 import librosa
 import os
 import pickle
+import pickle_blosc
 from itertools import repeat
 from multiprocessing.pool import Pool
 from functools import partial
@@ -15,7 +16,7 @@ sys.path.append("../")
 
 import config as config
 
-from feature_functions import extract_cqcc, extract_lfcc, extract_mfcc
+from .feature_functions import extract_cqcc, extract_lfcc, extract_mfcc
 
 
 def starmap_with_kwargs(pool, fn, args_iter, kwargs_iter):
@@ -123,15 +124,14 @@ if __name__ == "__main__":
 
     for data_name, protocol_filename in zip(data_names, protocol_filenames):
 
-        data_dir = os.path.join(db_folder, data_name, 'flac')
         protocol_path = os.path.join(db_folder, 'protocols', protocol_filename)
 
-        print(data_dir)
         print(protocol_path)
 
         for data_type in data_types:
 
             if data_type == 'train':
+                data_dir = os.path.join(db_folder, data_name, 'flac')
 
                 for data_label in data_labels:
 
@@ -164,6 +164,8 @@ if __name__ == "__main__":
 
             if data_type == 'eval':
 
+                data_dir = os.path.join(db_folder, 'flac')
+
                 print(protocol_path)
 
                 if db_type == 'in_the_wild':
@@ -175,7 +177,7 @@ if __name__ == "__main__":
 
                     args_iter = list(repeat(data_dir + '/' + files, 1))
 
-                elif db_type == 'asvspoof':
+                elif db_type == 'asvspoof_eval_laundered':
                     df = pd.read_csv(protocol_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
                     df = df[df["Laundering_Param"] == laundering_param]
                     files = df["AUDIO_FILE_NAME"].values

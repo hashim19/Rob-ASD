@@ -71,6 +71,6 @@ elif db_type == 'asvspoof_eval_laundered':
         print(len(files))
 
 # run on ASVspoof 2021 evaluation set
-scoring(scores_file=scores_file, dict_file=dict_file, features=features,
+test_scores = scoring(scores_file=scores_file, dict_file=dict_file, features=features,
         eval_file_list=files, eval_folder=eval_folder, audio_ext=audio_ext,
         feat_dir=feat_dir, features_cached=True)
