@@ -19,11 +19,11 @@ data_names = ['flac']
 # laundering_type = 'Reverberation' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
 # laundering_param = 'RT_0_6'         # random for laundered traning, wild for in the wild
 
-laundering_type = 'Noise_Addition' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
-laundering_param = 'white_0'         # random for laundered traning, wild for in the wild
+# laundering_type = 'Noise_Addition' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
+# laundering_param = 'street_20'         # random for laundered traning, wild for in the wild
 
-# laundering_type = 'Filtering' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
-# laundering_param = 'lpf_7000'         # random for laundered traning, wild for in the wild
+laundering_type = 'Recompression' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
+laundering_param = 'recompression_320k'         # random for laundered traning, wild for in the wild
 
 # laundering_type = 'train_laundered' # Recompression, Reverberation, Filtering, Resampling, train_laundered for laundered training, wild for in the wild
 # laundering_param = 'random'         # random for laundered traning, wild for in the wild
