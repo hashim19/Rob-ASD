@@ -22,8 +22,8 @@ def gen_score_file(score_file, protocl_file, out_dir='out_dir'):
     print(evalprotcol)
 
     # read score file
-    # evalscores = pd.read_csv(score_file, sep=" ", names=["AUDIO_FILE_NAME", "Scores"])
-    evalscores = pd.read_csv(score_file, sep=" ", names=["AUDIO_FILE_NAME", "SYSTEM_ID_1", "KEY_1", "Scores"])
+    evalscores = pd.read_csv(score_file, sep=" ", names=["AUDIO_FILE_NAME", "Scores"])
+    # evalscores = pd.read_csv(score_file, sep=" ", names=["AUDIO_FILE_NAME", "SYSTEM_ID_1", "KEY_1", "Scores"])
     
     # print(evalscores)
 
