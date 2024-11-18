@@ -203,6 +203,15 @@ if __name__ == '__main__':
                 # evalprotcol = evalprotcol_tmp
                 eval_df_ls.append(evalprotcol_tmp)
 
+            elif db_type == 'asvspoof_eval':
+                pathToDatabase = os.path.join(db_folder, 'flac')
+
+                evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"])
+                
+                evalprotcol = evalprotcol[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+
+                eval_df_ls.append(evalprotcol)
+
         elif data_type == 'train' or data_type == 'dev':
 
             pathToDatabase = os.path.join(db_folder, data_name, 'flac')
@@ -270,7 +279,7 @@ if __name__ == '__main__':
         os.mkdir(model_save_path)
     
     #GPU device
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'                  
+    device = 'cuda:1' if torch.cuda.is_available() else 'cpu'                  
     print('Device: {}'.format(device))
     
     #model 

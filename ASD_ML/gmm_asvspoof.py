@@ -8,8 +8,8 @@ import os
 import logging
 import time
 import h5py
-from .Asvspoof_dataset import PKL_dataset, open_pkl, gmm_custom_collate
-from .extract_features import extract_features
+from Asvspoof_dataset import PKL_dataset, open_pkl, gmm_custom_collate
+from extract_features import extract_features
 from scipy.special import logsumexp
 
 import sys

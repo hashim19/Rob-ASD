@@ -129,7 +129,7 @@ class ASVDataset(Dataset):
             self.files_meta= [self.files_meta[x] for x in select_idx]
             self.data_x = [self.data_x[x] for x in select_idx]
             self.data_y = [self.data_y[x] for x in select_idx]
-            if config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_train_laundered':
+            if config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_train_laundered' or config.db_type == 'asvspoof_eval':
                 self.data_sysid = [self.data_sysid[x] for x in select_idx]
             
         self.length = len(self.data_x)
@@ -157,7 +157,7 @@ class ASVDataset(Dataset):
         tokens = line.strip().split(' ')
         if self.is_eval:
 
-            if config.db_type == 'asvspoof_eval_laundered':
+            if config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_eval':
                 return ASVFile(speaker_id=tokens[0],
                     file_name=tokens[1],
                     path=os.path.join(self.files_dir, tokens[1] + self.ext),

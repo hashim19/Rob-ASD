@@ -32,6 +32,9 @@ dict_file = 'gmm_' + str(ncomp) + '_LA_' + features + '_' + laundering_type
 train_folders = [os.path.join(db_folder, dt_name, 'flac') for dt_name in data_names]
 train_keys = [os.path.join(db_folder, 'protocols', pf) for pf in protocol_filenames] 
 
+print(train_folders)
+print(train_keys)
+
 # train_folders = [db_folder + 'LA/ASVspoof2019_LA_train/flac/']  # [db_folder + 'LA/ASVspoof2019_LA_train/flac/', db_folder + 'LA/ASVspoof2019_LA_dev/flac/']
 # train_keys = [db_folder + 'LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt']  # [db_folder + 'LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt', db_folder + 'LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trn.txt']
 
@@ -46,8 +49,8 @@ data_labels = config.data_labels
 #                         train_keys=train_keys, train_folders=train_folders, audio_ext=audio_ext,
 #                         dict_file=dict_file, ncomp=ncomp, feat_dir=Feat_dir,
 #                         init_only=False)
-gmm_spoof = train_gmm(data_label=data_labels[1], features=features,
-                        train_keys=train_keys, train_folders=train_folders, audio_ext=audio_ext,
-                        dict_file=dict_file, ncomp=ncomp, feat_dir=Feat_dir,
-                        init_only=False)
+# gmm_spoof = train_gmm(data_label=data_labels[1], features=features,
+#                         train_keys=train_keys, train_folders=train_folders, audio_ext=audio_ext,
+#                         dict_file=dict_file, ncomp=ncomp, feat_dir=Feat_dir,
+#                         init_only=False)
 

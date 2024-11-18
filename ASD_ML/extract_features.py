@@ -16,7 +16,7 @@ sys.path.append("../")
 
 import config as config
 
-from .feature_functions import extract_cqcc, extract_lfcc, extract_mfcc
+from feature_functions import extract_cqcc, extract_lfcc, extract_mfcc
 
 
 def starmap_with_kwargs(pool, fn, args_iter, kwargs_iter):

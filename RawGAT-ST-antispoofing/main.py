@@ -82,7 +82,7 @@ def produce_evaluation_file(dataset, model, device, save_path):
 
         # add outputs
 
-        if config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_train_laundered':
+        if config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_train_laundered' or config.db_type == 'asvspoof_eval':
 
             fname_list.extend(list(batch_meta[1]))
             key_list.extend(
@@ -249,6 +249,15 @@ if __name__ == '__main__':
                 evalProtocolFile_tmp = os.path.join(db_folder, 'protocols', evalProtocolFile.split('.')[0] + '_' 'tmp.txt')
 
                 eval_pf_ls.append(evalProtocolFile_tmp)
+
+            elif db_type == 'asvspoof_eval':
+                pathToDatabase = os.path.join(db_folder, 'flac')
+
+                evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"])
+                
+                evalprotcol = evalprotcol[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+
+                eval_pf_ls.append(evalProtocolFile)
 
         elif data_type == 'train' or data_type == 'dev':
 

@@ -4,7 +4,7 @@ import json
 import shutil
 from resnet import setup_seed, ResNet
 from loss import *
-from dataset import ASVspoof2019, ASVspoofLaundered
+from dataset import ASVspoof2019, ASVspoofLaundered, ASVspoof5Laundered
 from collections import defaultdict
 from tqdm import tqdm
 import eval_metrics as em
@@ -124,11 +124,18 @@ def train(args):
     # validation_set = ASVspoof2019(args.access_type, args.path_to_features, args.path_to_protocol, 'dev',
     #                               'LFCC', feat_len=args.feat_len, padding=args.padding)
 
-    training_set = ASVspoofLaundered(args.path_to_features, args.path_to_protocol, config.protocol_filenames, 'train',
-                                     'LFCC', genuine_only = True, feat_len=args.feat_len, padding=args.padding)
-    validation_set = ASVspoofLaundered(args.path_to_features, args.path_to_protocol, config.protocol_filenames, 'dev',
-                                       'LFCC', genuine_only = True, feat_len=args.feat_len, padding=args.padding)
+    if config.db_type == 'asvspoof5_train_laundered':
+        training_set = ASVspoof5Laundered(args.path_to_features, args.path_to_protocol, config.protocol_filenames, 'train',
+                                        'LFCC', genuine_only = False, feat_len=args.feat_len, padding=args.padding, feature_format=config.feature_format)
+        validation_set = ASVspoof5Laundered(args.path_to_features, args.path_to_protocol, config.protocol_filenames, 'dev',
+                                        'LFCC', genuine_only = False, feat_len=args.feat_len, padding=args.padding, feature_format=config.feature_format)
     
+    else:
+        training_set = ASVspoofLaundered(args.path_to_features, args.path_to_protocol, config.protocol_filenames, 'train',
+                                     'LFCC', genuine_only = False, feat_len=args.feat_len, padding=args.padding)
+        validation_set = ASVspoofLaundered(args.path_to_features, args.path_to_protocol, config.protocol_filenames, 'dev',
+                                       'LFCC', genuine_only = False, feat_len=args.feat_len, padding=args.padding)
+        
     trainDataLoader = DataLoader(training_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
                                  collate_fn=training_set.collate_fn)
     valDataLoader = DataLoader(validation_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,

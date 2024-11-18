@@ -42,12 +42,54 @@ def genSpoof_list(dir_meta, is_train=False, is_eval=False):
         return d_meta, file_list
 
 
+def genSpoof_list_asvspoof5(dir_meta, is_train=False, is_eval=False):
+
+    d_meta = {}
+    file_list = []
+    l_meta = []
+
+    print(dir_meta)
+    for prot_meta in dir_meta:
+
+        with open(prot_meta, "r") as f:
+            l_meta.extend(f.readlines())
+
+    if is_train:
+        for line in l_meta:
+            _, key, _, _, _, label = line.strip().split(" ")[:6]
+            file_list.append(key)
+            d_meta[key] = 1 if label == "bonafide" else 0
+        return d_meta, file_list
+
+    elif is_eval:
+        for line in l_meta:
+            _, key, _, _, _, _ = line.strip().split(" ")
+            #key = line.strip()
+            file_list.append(key)
+        return file_list
+    else:
+        for line in l_meta:
+            _, key, _, _, _, label = line.strip().split(" ")
+            file_list.append(key)
+            d_meta[key] = 1 if label == "bonafide" else 0
+        return d_meta, file_list
+    
+
 def genSpoof_list_wild(dir_meta):
 
     d_meta = {}
     file_list = []
-    with open(dir_meta, "r") as f:
-        l_meta = f.readlines()
+    l_meta = []
+
+    print(dir_meta)
+
+    for prot_meta in dir_meta:
+
+        with open(prot_meta, "r") as f:
+            l_meta.extend(f.readlines())
+
+    # with open(dir_meta, "r") as f:
+    #     l_meta = f.readlines()
 
     for line in l_meta:
         key, _, _ = line.strip().split(",")
