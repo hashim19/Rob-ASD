@@ -7,3 +7,11 @@ librosa
 tqdm
 matplotlib
 h5py
+umap-learn
+seaborn
+datashader
+bokeh
+holoviews
+scikit-image
+colorcet
+ipykernel

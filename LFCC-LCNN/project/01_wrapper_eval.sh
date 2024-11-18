@@ -41,4 +41,6 @@ cd baseline_LA
 
 # bash 02_eval_alternative.sh /data/Data/ASVSpoofLaunderedDatabase/ASVSpoofLaunderedDatabase Noise_Addition babble_10 __pretrained/trained_network.pt
 # bash 02_eval_alternative.sh /data/Data/ds_wild wild wild __pretrained/trained_network_asvspoof_laundered.pt
-bash 02_eval_alternative.sh /data/Data/ASVSpoofLaunderedDatabase/ASVSpoofLaunderedDatabase Resampling resample_8000 __pretrained/trained_network_asvspoof_laundered.pt
+
+# bash 02_eval_alternative.sh /data/Data/ASVSpoofLaunderedDatabase/ASVSpoofLaunderedDatabase Resampling resample_8000 __pretrained/trained_network_asvspoof_laundered.pt
+bash 02_eval_alternative.sh /data/Data/AsvSpoofData_2019/train/LA/ASVspoof2019_LA_eval no_laundering no_laundering  __pretrained/trained_network_asvspoof_laundered.pt

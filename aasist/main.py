@@ -27,7 +27,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchcontrib.optim import SWA
 
 from data_utils import (Dataset_ASVspoof2019_train,
-                        Dataset_ASVspoof2019_devNeval, genSpoof_list, genSpoof_list_wild)
+                        Dataset_ASVspoof2019_devNeval, genSpoof_list, genSpoof_list_wild, genSpoof_list_asvspoof5)
 from evaluation import calculate_tDCF_EER
 from utils import create_optimizer, seed_worker, set_seed, str_to_bool
 
@@ -113,6 +113,11 @@ def main(args: argparse.Namespace) -> None:
 
                 eval_pf_ls.append(evalProtocolFile_tmp)
 
+            elif db_type == 'asvspoof_eval':
+                pathToDatabase = os.path.join(db_folder, 'flac')
+
+                eval_pf_ls.append(evalProtocolFile)
+
             pathToDatabase_eval.append(pathToDatabase)
 
         elif data_type == 'train' or data_type == 'dev':
@@ -137,7 +142,7 @@ def main(args: argparse.Namespace) -> None:
     #     "ASVspoof2019_{}_cm_protocols/{}.cm.eval.trl.txt".format(
     #         track, prefix_2019))
 
-    eval_out = os.path.join(score_dir, 'RawGAT_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
+    # eval_out = os.path.join(score_dir, 'RawGAT_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
 
     # define model related paths
     model_tag = "{}_{}_ep{}_bs{}".format(
@@ -154,7 +159,7 @@ def main(args: argparse.Namespace) -> None:
     copy(args.config, model_tag / "config.conf")
 
     # set device
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda:1" if torch.cuda.is_available() else "cpu"
     print("Device: {}".format(device))
     if device == "cpu":
         raise ValueError("GPU not detected!")
@@ -247,61 +252,60 @@ def main(args: argparse.Namespace) -> None:
                        model_save_path / "epoch_{}_{:03.3f}.pth".format(epoch, dev_eer))
 
             # do evaluation whenever best model is renewed
-    #         if str_to_bool(args_config["eval_all_best"]):
-    #             produce_evaluation_file(eval_loader, model, device,
-    #                                     eval_score_path, eval_pf_ls, config)
-    #             # eval_eer, eval_tdcf = calculate_tDCF_EER(
-    #             #     cm_scores_file=eval_score_path,
-    #             #     asv_score_file=orig_database_path / args_config["asv_score_path"],
-    #             #     output_file=metric_path /
-    #             #     "t-DCF_EER_{:03d}epo.txt".format(epoch))
+            if str_to_bool(args_config["eval_all_best"]):
+                produce_evaluation_file(eval_loader, model, device,
+                                        eval_score_path, eval_pf_ls, config)
+                # eval_eer, eval_tdcf = calculate_tDCF_EER(
+                #     cm_scores_file=eval_score_path,
+                #     asv_score_file=orig_database_path / args_config["asv_score_path"],
+                #     output_file=metric_path /
+                #     "t-DCF_EER_{:03d}epo.txt".format(epoch))
                 
-    #             eval_eer = calculate_tDCF_EER(
-    #                 cm_scores_file=eval_score_path,
-    #                 asv_score_file=orig_database_path / args_config["asv_score_path"],
-    #                 output_file=metric_path /
-    #                 "t-DCF_EER_{:03d}epo.txt".format(epoch))
+                eval_eer = calculate_tDCF_EER(
+                    cm_scores_file=eval_score_path,
+                    asv_score_file=orig_database_path / args_config["asv_score_path"],
+                    output_file=metric_path /
+                    "t-DCF_EER_{:03d}epo.txt".format(epoch))
 
-    #             log_text = "epoch{:03d}, ".format(epoch)
-    #             if eval_eer < best_eval_eer:
-    #                 log_text += "best eer, {:.4f}%".format(eval_eer)
-    #                 best_eval_eer = eval_eer
-    #                 torch.save(model.state_dict(),
-    #                            model_save_path / "best.pth")
+                log_text = "epoch{:03d}, ".format(epoch)
+                if eval_eer < best_eval_eer:
+                    log_text += "best eer, {:.4f}%".format(eval_eer)
+                    best_eval_eer = eval_eer
+                    torch.save(model.state_dict(),
+                               model_save_path / "best.pth")
                     
-    #             # if eval_tdcf < best_eval_tdcf:
-    #             #     log_text += "best tdcf, {:.4f}".format(eval_tdcf)
-    #             #     best_eval_tdcf = eval_tdcf
-    #             #     torch.save(model.state_dict(),
-    #             #                model_save_path / "best.pth")
-    #             if len(log_text) > 0:
-    #                 print(log_text)
-    #                 f_log.write(log_text + "\n")
+                # if eval_tdcf < best_eval_tdcf:
+                #     log_text += "best tdcf, {:.4f}".format(eval_tdcf)
+                #     best_eval_tdcf = eval_tdcf
+                #     torch.save(model.state_dict(),
+                #                model_save_path / "best.pth")
+                if len(log_text) > 0:
+                    print(log_text)
+                    f_log.write(log_text + "\n")
 
-    #         print("Saving epoch {} for swa".format(epoch))
-    #         optimizer_swa.update_swa()
-    #         n_swa_update += 1
-    #     writer.add_scalar("best_dev_eer", best_dev_eer, epoch)
-    #     # writer.add_scalar("best_dev_tdcf", best_dev_tdcf, epoch)
+            print("Saving epoch {} for swa".format(epoch))
+            optimizer_swa.update_swa()
+            n_swa_update += 1
+        writer.add_scalar("best_dev_eer", best_dev_eer, epoch)
+        # writer.add_scalar("best_dev_tdcf", best_dev_tdcf, epoch)
 
-    # print("Start final evaluation")
-    # epoch += 1
-    # if n_swa_update > 0:
-    #     optimizer_swa.swap_swa_sgd()
-    #     optimizer_swa.bn_update(trn_loader, model, device=device)
+    print("Start final evaluation")
+    epoch += 1
+    if n_swa_update > 0:
+        optimizer_swa.swap_swa_sgd()
+        optimizer_swa.bn_update(trn_loader, model, device=device)
     # produce_evaluation_file(eval_loader, model, device, eval_score_path,
     #                         eval_pf_ls, config)
     # eval_eer = calculate_tDCF_EER(cm_scores_file=eval_score_path,
-    #                                          asv_score_file=orig_database_path /
-    #                                          args_config["asv_score_path"],
-    #                                          output_file=model_tag / "t-DCF_EER.txt")
-    # f_log = open(model_tag / "metric_log.txt", "a")
-    # f_log.write("=" * 5 + "\n")
+    #                               asv_score_file=orig_database_path / args_config["asv_score_path"],
+    #                               output_file=model_tag / "t-DCF_EER.txt")
+    f_log = open(model_tag / "metric_log.txt", "a")
+    f_log.write("=" * 5 + "\n")
     # f_log.write("EER: {:.3f}".format(eval_eer))
-    # f_log.close()
+    f_log.close()
 
-    # torch.save(model.state_dict(),
-    #            model_save_path / "swa.pth")
+    torch.save(model.state_dict(),
+               model_save_path / "swa.pth")
 
     # if eval_eer <= best_eval_eer:
     #     best_eval_eer = eval_eer
@@ -407,7 +411,7 @@ def get_loader(
         if config.db_type == 'in_the_wild':
             file_eval = genSpoof_list_wild(dir_meta=protocol_path)
         
-        elif config.db_type == 'asvspoof_eval_laundered':
+        elif config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_eval':
             file_eval = genSpoof_list(dir_meta=protocol_path,
                                     is_train=False,
                                     is_eval=True)
@@ -424,9 +428,15 @@ def get_loader(
         
     elif data_type == 'dev':
 
-        _, file_dev = genSpoof_list(dir_meta=protocol_path,
-                                    is_train=False,
-                                    is_eval=False)
+        if config.db_type == 'asvspoof5_train_laundered':
+
+            _, file_dev = genSpoof_list_asvspoof5(dir_meta=protocol_path,
+                                                              is_train=False,
+                                                              is_eval=False)
+        else:
+            _, file_dev = genSpoof_list(dir_meta=protocol_path,
+                                        is_train=False,
+                                        is_eval=False)
         
         print("no. validation files:", len(file_dev))
 
@@ -441,9 +451,17 @@ def get_loader(
         
     elif data_type == 'train':
 
-        d_label_trn, file_train = genSpoof_list(dir_meta=protocol_path,
-                                                is_train=True,
-                                                is_eval=False)
+        if config.db_type == 'asvspoof5_train_laundered':
+
+            d_label_trn, file_train = genSpoof_list_asvspoof5(dir_meta=protocol_path,
+                                                              is_train=True,
+                                                              is_eval=False)
+            
+        else:
+
+            d_label_trn, file_train = genSpoof_list(dir_meta=protocol_path,
+                                                    is_train=True,
+                                                    is_eval=False)
 
         print("no. training files:", len(file_train))
 
@@ -501,9 +519,9 @@ def produce_evaluation_file(
                 utt_id, _, key = trl.strip().split(',')
 
                 assert fn == utt_id
-                fh.write("{} {} {} {}\n".format(utt_id, key, sco))
+                fh.write("{} {} {}\n".format(utt_id, key, sco))
 
-            elif config.db_type == 'asvspoof_eval_laundered':
+            elif config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_eval':
                 _, utt_id, _, src, key = trl.strip().split(' ')
 
                 assert fn == utt_id
@@ -511,6 +529,12 @@ def produce_evaluation_file(
 
             elif config.db_type == 'asvspoof_train_laundered':
                 _, utt_id, _, src, key = trl.strip().split(' ')[:5]
+
+                assert fn == utt_id
+                fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
+
+            elif config.db_type == 'asvspoof5_train_laundered':
+                _, utt_id, _, _, src, key = trl.strip().split(' ')[:6]
 
                 assert fn == utt_id
                 fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))

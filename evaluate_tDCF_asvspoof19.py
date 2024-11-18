@@ -15,12 +15,15 @@ def gen_score_file(score_file, protocl_file, out_dir='out_dir'):
         evalprotcol = pd.read_csv(protocl_file, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
     elif config.db_type == 'asvspoof_eval_laundered':      
         evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY","Laundering_Type", "Laundering_Param"])
-    # evalprotcol = pd.read_csv(protocl_file, sep=",", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"])
+
+    elif config.db_type == 'asvspoof_eval':
+        evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"])
 
     print(evalprotcol)
 
     # read score file
-    evalscores = pd.read_csv(score_file, sep=" ", names=["AUDIO_FILE_NAME", "Scores"])
+    # evalscores = pd.read_csv(score_file, sep=" ", names=["AUDIO_FILE_NAME", "Scores"])
+    evalscores = pd.read_csv(score_file, sep=" ", names=["AUDIO_FILE_NAME", "SYSTEM_ID_1", "KEY_1", "Scores"])
     
     # print(evalscores)
 

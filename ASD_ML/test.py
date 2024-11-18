@@ -27,14 +27,15 @@ if not os.path.exists(score_dir):
         os.makedirs(score_dir)
 
 # score file to write
-scores_file = os.path.join(score_dir, 'scores-' + features + '-gmm-' + str(ncomp) + '-' + laundering_param + '-' + config.db_type + '.txt')
+scores_file = os.path.join(score_dir, features + '-gmm-' + str(ncomp) + '-' + laundering_param + '-' + config.db_type + '-scores' + '.txt')
 
 print(scores_file)
 
 # bona_path = 'gmm_' + str(ncomp) + '_LA_cqcc' + '_bonafide'
 # spoof_path = 'gmm_' + str(ncomp) + '_LA_cqcc' + '_spoof'
 
-model_dir = 'gmm_' + str(ncomp) + '_LA_' + features + '_' + 'train_laundered'
+# model_dir = 'gmm_' + str(ncomp) + '_LA_' + features + '_' + 'train_laundered'
+model_dir = 'gmm_' + str(ncomp) + '_LA_' + features
 bona_path = os.path.join(model_dir, 'bonafide', 'gmm_final.pkl')
 spoof_path = os.path.join(model_dir, 'spoof', 'gmm_final.pkl')
 
@@ -49,6 +50,9 @@ dict_file['spoof'] = spoof_path
 if db_type == 'in_the_wild':
         eval_folder = os.path.join(db_folder, 'release_in_the_wild')
 elif db_type == 'asvspoof_eval_laundered':
+        eval_folder = os.path.join(db_folder, 'flac')
+
+elif db_type == 'asvspoof_eval':
         eval_folder = os.path.join(db_folder, 'flac')
 
 eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth)
@@ -66,6 +70,13 @@ if db_type == 'in_the_wild':
 elif db_type == 'asvspoof_eval_laundered':
         df = pd.read_csv(eval_ndx, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
         df = df[df["Laundering_Param"] == laundering_param]
+        files = df["AUDIO_FILE_NAME"].values
+        print(df)
+        print(len(files))
+
+elif db_type == 'asvspoof_eval':
+        print(eval_ndx)
+        df = pd.read_csv(eval_ndx, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"])
         files = df["AUDIO_FILE_NAME"].values
         print(df)
         print(len(files))
