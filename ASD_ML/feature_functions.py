@@ -9,7 +9,7 @@ from os.path import exists
 from random import sample
 import librosa
 
-from .Feature_Library.LFCC_pipeline import lfcc
+from Feature_Library.LFCC_pipeline import lfcc
 from CQCC.CQT_toolbox_2013.cqt import cqt
 from CQCC.cqcc import cqcc
 

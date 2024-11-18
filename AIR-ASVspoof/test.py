@@ -4,11 +4,18 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
-from dataset import ASVspoof2019, InTheWild, ASVspoofLaundered
+from dataset import ASVspoof2019, InTheWild, ASVspoofLaundered, ASVspoof5Laundered
 from evaluate_tDCF_asvspoof19 import compute_eer_and_tdcf
 from tqdm import tqdm
 import eval_metrics as em
 import numpy as np
+
+import umap
+import umap.plot
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.manifold import TSNE
+import pandas as pd
 
 import sys
 sys.path.append("../")
@@ -34,47 +41,134 @@ def test_model(feat_model_path, loss_model_path, part, add_loss, device, data_di
     if config.db_type == 'in_the_wild':
         test_set = InTheWild(feat_path, protocol_file_path, part, "LFCC", feat_len=750, padding="repeat")
     
-    elif config.db_type == 'asvspoof':
+    elif config.db_type == 'asvspoof_eval':
         test_set = ASVspoof2019("LA", feat_path, protocol_file_path, part, "LFCC", feat_len=750, padding="repeat")
     
     elif config.db_type == 'asvspoof_eval_laundered':
         test_set =  ASVspoofLaundered(feat_path, protocol_file_path, config.protocol_filenames, part, "LFCC", feat_len=750, padding="repeat", feature_format=config.feature_format)
 
+    elif config.db_type == 'asvspoof5_eval_laundered':
+        test_set =  ASVspoof5Laundered(feat_path, protocol_file_path, config.protocol_filenames, part, "LFCC", feat_len=750, padding="repeat", feature_format=config.feature_format)
+
     testDataLoader = DataLoader(test_set, batch_size=32, shuffle=False, num_workers=0,
                                 collate_fn=test_set.collate_fn)
     model.eval()
 
-    with open(os.path.join(score_dir, d_name + '_checkpoint_cm_score.txt'), 'w') as cm_score_file:
-        for i, (lfcc, audio_fn, tags, labels) in enumerate(tqdm(testDataLoader)):
-            lfcc = lfcc.unsqueeze(1).float().to(device)
-            tags = tags.to(device)
-            labels = labels.to(device)
+    if config.db_type == 'asvspoof5_eval_laundered':
+        with open(os.path.join(score_dir, d_name + '_checkpoint_cm_score.txt'), 'w') as cm_score_file:
+            for i, (lfcc, audio_fn) in enumerate(tqdm(testDataLoader)):
+                lfcc = lfcc.unsqueeze(1).float().to(device)
 
-            feats, lfcc_outputs = model(lfcc)
+                feats, lfcc_outputs = model(lfcc)
 
-            score = F.softmax(lfcc_outputs)[:, 0]
+                score = F.softmax(lfcc_outputs)[:, 0]
 
-            if add_loss == "ocsoftmax":
-                ang_isoloss, score = loss_model(feats, labels)
-            elif add_loss == "amsoftmax":
-                outputs, moutputs = loss_model(feats, labels)
-                score = F.softmax(outputs, dim=1)[:, 0]
+                # if add_loss == "ocsoftmax":
+                #     ang_isoloss, score = loss_model(feats)
+                # elif add_loss == "amsoftmax":
+                #     outputs, moutputs = loss_model(feats, labels)
+                #     score = F.softmax(outputs, dim=1)[:, 0]
 
-            for j in range(labels.size(0)):
-                # cm_score_file.write(
-                #     '%s A%02d %s %s\n' % (audio_fn[j], tags[j].data,
-                #                           "spoof" if labels[j].data.cpu().numpy() else "bonafide",
-                #                           score[j].item()))
+                for j in range(len(audio_fn)):
 
-                cm_score_file.write(
-                    '%s %s %s\n' % (audio_fn[j], "spoof" if labels[j].data.cpu().numpy() else "bonafide", score[j].item()))
+                    cm_score_file.write('%s %s\n' % (audio_fn[j], score[j].item()))
+                    
+    else:
+        feat_ls = []
+        labels_ls = []
+        with open(os.path.join(score_dir, d_name + '_checkpoint_cm_score.txt'), 'w') as cm_score_file:
+            for i, (lfcc, audio_fn, tags, labels) in enumerate(tqdm(testDataLoader)):
+                lfcc = lfcc.unsqueeze(1).float().to(device)
+                tags = tags.to(device)
+                labels = labels.to(device)
 
+                feats, lfcc_outputs = model(lfcc)
+
+                score = F.softmax(lfcc_outputs)[:, 0]
+
+                if add_loss == "ocsoftmax":
+                    ang_isoloss, score = loss_model(feats, labels)
+                elif add_loss == "amsoftmax":
+                    outputs, moutputs = loss_model(feats, labels)
+                    score = F.softmax(outputs, dim=1)[:, 0]
+
+                # print(type(feats))
+                # print(feats.shape)
+                feat_ls.append(feats.detach().cpu().numpy())
+                # print(len(feat_ls))
+
+                labels_ls.extend(labels.cpu())
+
+                # for j in range(labels.size(0)):
+
+                #     labels_ls.append("spoof" if labels[j].data.cpu().numpy() else "bonafide")
+
+                # for j in range(labels.size(0)):
+                #     # cm_score_file.write(
+                #     #     '%s A%02d %s %s\n' % (audio_fn[j], tags[j].data,
+                #     #                           "spoof" if labels[j].data.cpu().numpy() else "bonafide",
+                #     #                           score[j].item()))
+
+                #     cm_score_file.write(
+                #         '%s %s %s\n' % (audio_fn[j], "spoof" if labels[j].data.cpu().numpy() else "bonafide", score[j].item()))
+        
+        # feat_array = np.concatenate(feat_ls)
+        feat_array = np.vstack(feat_ls)
+        print(feat_array.shape)
+        labels = np.array(labels_ls)
+        print(labels)
+        print(labels.shape)
+        # unique_labels = np.unique(labels_ls)
+        # print(unique_labels)
+
+        ################# Dimension reduction ###############
+
+        figures_dir = './figures'
+
+        if not os.path.exists(figures_dir):
+            os.makedirs(figures_dir)
+        
+        # UMAP
+        # reducer = umap.UMAP(random_state=42, n_neighbors=50)
+
+        # embedding_mapper = reducer.fit(feat_array)
+        # # print(embedding.shape)
+
+        # # plt.scatter(embedding[:, 0], embedding[:, 1], c=labels, cmap='Spectral', s=1, labels=labels)
+        # # plt.title('UMAP projection of the OCSoftmax Embeddings', fontsize=24)
+
+        # umap.plot.points(embedding_mapper, labels=labels)
+
+        # figure_name = 'umap_ocsoftmax.png'
+
+        # TSNE
+        perplexity=100
+        early_exagg = 50
+        palette = ['#800F2F', '#023E8A']
+        markers = ['o', 'o']
+
+        tsne = TSNE(n_components=2, verbose=0, random_state=123, perplexity=perplexity, early_exaggeration=early_exagg, n_iter=5000, n_jobs=8)
+        z = tsne.fit_transform(feat_array)
+
+        df = pd.DataFrame()
+        df["y"] = labels
+        df["$X_1$"] = z[:,0]
+        df["$X_2$"] = z[:,1]
+
+        sns.scatterplot(x='$X_1$', y='$X_2$', hue=df.y.tolist(), style=df.y.tolist(), s=10, markers=markers, 
+                        palette=palette, data=df).set(title = "TSNE projection of the OCSoftmax Embeddings") 
+
+        figure_name = 'tsne_ocsoftmax.png'
+
+        fig_sav_path = os.path.join(figures_dir, figure_name)
+        plt.savefig(fig_sav_path, bbox_inches='tight')
+    
     # eer_cm, min_tDCF = compute_eer_and_tdcf(os.path.join(dir_path, d_name + '_checkpoint_cm_score.txt'),
     #                                         "/home/hashim/PhD/Data/AsvSpoofData_2019/train/")
 
-    eer_cm = compute_eer_and_tdcf(os.path.join(score_dir, d_name + '_checkpoint_cm_score.txt'),
-                                            "/home/hashim/PhD/Data/AsvSpoofData_2019/train/")
-    return eer_cm
+    # eer_cm = compute_eer_and_tdcf(os.path.join(score_dir, d_name + '_checkpoint_cm_score.txt'),
+    #                                         "/home/hashim/PhD/Data/AsvSpoofData_2019/train/")
+    # return eer_cm
 
 def test(model_dir, add_loss, device, data_dir='data', protocol_path='', feat_dir='', data_name = ''):
     model_path = os.path.join(model_dir, "anti-spoofing_lfcc_model.pt")
@@ -164,7 +258,7 @@ if __name__ == "__main__":
     # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     # args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model_dir = "./models_laundered/ocsoftmax"
+    model_dir = "./models1028/ocsoftmax"
     loss = "ocsoftmax"
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -176,6 +270,8 @@ if __name__ == "__main__":
     laundering_param = config.laundering_param
     protocol_pth = config.protocol_filenames[0]
 
+    data_names = config.data_names
+
     if db_type == 'in_the_wild':
         eval_folder = os.path.join(db_folder, 'release_in_the_wild')
         eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth)
@@ -183,6 +279,16 @@ if __name__ == "__main__":
     elif db_type == 'asvspoof_eval_laundered':
         eval_folder = os.path.join(db_folder, 'flac')
         eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth.split('.')[0] + '_' 'tmp.txt')
+
+    elif db_type == 'asvspoof_eval':
+        eval_folder = os.path.join(db_folder, 'flac')
+
+        eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth)
+
+    elif db_type == 'asvspoof5_eval_laundered':
+        eval_folder = os.path.join(db_folder, data_names[0], 'flac')
+
+        eval_ndx = os.path.join(db_folder, 'protocols', protocol_pth)
 
     Feat_dir = os.path.join(config.feat_dir, laundering_type, laundering_param, 'lfcc_features_airasvspoof')
 

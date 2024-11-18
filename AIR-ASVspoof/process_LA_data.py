@@ -119,13 +119,35 @@ if __name__ == "__main__":
 
                 filelist = evalprotcol_tmp["AUDIO_FILE_NAME"].to_list()
 
+            elif db_type == 'asvspoof_eval':
+                pathToDatabase = os.path.join(db_folder, 'flac')
+
+                evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_for_LA", "SYSTEM_ID", "KEY"])
+                
+                filelist = evalprotcol["AUDIO_FILE_NAME"].to_list()
+
+            elif db_type == 'asvspoof5_eval_laundered':
+                pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+
+                evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["AUDIO_FILE_NAME", "KEY"])
+                
+                filelist = evalprotcol["AUDIO_FILE_NAME"].to_list()
+
+
         elif data_type == 'train' or data_type == 'dev':
 
-            pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+            # pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+            pathToDatabase = os.path.join(db_folder, 'flac')
 
             protocol_file_path = os.path.join(db_folder, 'protocols', protocol_filename)
 
-            protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+            if db_type == 'asvspoof5_train_laundered':
+                protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Gender", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+            
+            else:
+                protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+
+            print(protocol_df)
 
             filelist = protocol_df["AUDIO_FILE_NAME"].to_list()
 

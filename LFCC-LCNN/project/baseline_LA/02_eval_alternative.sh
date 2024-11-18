@@ -49,29 +49,35 @@ echo -e "Run evaluation"
 source $PWD/../../env.sh
 
 # step2. prepare test.lst
-# ls ${eval_wav_dir} | xargs -I{} basename {} .wav | xargs -I{} basename {} .flac > ${eval_set_name}.lst
 
 eval_set_name="${laundering_type}_${laundering_param}"
 eval_wav_dir="${db_folder}/flac/"
-# eval_wav_dir="${db_folder}/release_in_the_wild/"
-
-protocol_filename="${db_folder}/protocols/ASVspoofLauneredDatabase_${laundering_type}.txt"
-# protocol_filename="${db_folder}/protocols/meta.csv"
 
 
 echo -e $eval_set_name
 # echo -e $eval_wav_dir
 # echo -e $protocol_filename
 
-############# for ASVSpoofLaunderedDatabase ##########
-# save the required filenames into an array
-filename_lst=( $(awk -v a="$laundering_param" '$6 == a {print $2}' ${protocol_filename}) )
 
-# save the array into a list
-# echo "${filename_lst[*]}" > ${eval_set_name}.lst
-printf "%s\n" "${filename_lst[@]}" > ${eval_set_name}.lst
+############# For ASVSpoof Eval Database #############
+
+ls ${eval_wav_dir} | xargs -I{} basename {} .wav | xargs -I{} basename {} .flac > ${eval_set_name}.lst
+
+############# for ASVSpoofLaunderedDatabase ##########
+
+# protocol_filename="${db_folder}/protocols/ASVspoofLauneredDatabase_${laundering_type}.txt"
+
+# save the required filenames into an array
+# filename_lst=( $(awk -v a="$laundering_param" '$6 == a {print $2}' ${protocol_filename}) )
+
+# # save the array into a list
+# # echo "${filename_lst[*]}" > ${eval_set_name}.lst
+# printf "%s\n" "${filename_lst[@]}" > ${eval_set_name}.lst
 
 ############# for in the wild dataset ################
+
+# eval_wav_dir="${db_folder}/release_in_the_wild/"
+# protocol_filename="${db_folder}/protocols/meta.csv"
 # ls ${eval_wav_dir} | xargs -I{} basename {} .wav | xargs -I{} basename {} .flac > ${eval_set_name}.lst
 
 # step3. export for config_auto.py
