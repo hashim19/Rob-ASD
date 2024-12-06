@@ -67,7 +67,8 @@ n_comp = 512
 
 # score dir
 # score_dir = '../Score_Files_laundered_train'
-score_dir = '../Score_Files_Clean'
+# score_dir = '../Score_Files_Clean'
+score_dir = '../Score_Files'
 
 # score_dir = '../Score_Files_asvspoof5_laundered_train'
 
