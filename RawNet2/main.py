@@ -244,7 +244,7 @@ if __name__ == '__main__':
 
     eval_out = os.path.join(config.score_dir, 'RawNet2_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
  
-    model_path = './models/RawNet2_best_model_laundered_train.pth'
+    model_path = './models/RawNet2_best_model_Asvspoof5.pth'
 
     dir_yaml = os.path.splitext('model_config_RawNet')[0] + '.yaml'
 
