@@ -332,19 +332,17 @@ if __name__ == '__main__':
 
     # Adam optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.weight_decay)
-    
-    
-    model_path = os.path.join(model_save_path, 'epoch_291_Best.pth')
-
-    if model_path:
-        model.load_state_dict(torch.load(model_path,map_location=device))
-        print('Model loaded : {}'.format(model_path))
-
 
     # Inference
     if args.eval:
         # assert args.eval_output is not None, 'You must provide an output path'
         # assert args.model_path is not None, 'You must provide model checkpoint'
+
+        model_path = os.path.join(model_save_path, 'epoch_291_Best.pth')
+
+        if model_path:
+            model.load_state_dict(torch.load(model_path,map_location=device))
+            print('Model loaded : {}'.format(model_path))
 
         # evaluation Dataloader
         print(pathToDatabase)

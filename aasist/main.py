@@ -428,7 +428,7 @@ def get_loader(
         
     elif data_type == 'dev':
 
-        if config.db_type == 'asvspoof5_train_laundered':
+        if config.db_type == 'asvspoof5_train_laundered' or config.db_type == 'asvspoof5_train':
 
             _, file_dev = genSpoof_list_asvspoof5(dir_meta=protocol_path,
                                                               is_train=False,
@@ -451,7 +451,7 @@ def get_loader(
         
     elif data_type == 'train':
 
-        if config.db_type == 'asvspoof5_train_laundered':
+        if config.db_type == 'asvspoof5_train_laundered'  or config.db_type == 'asvspoof5_train':
 
             d_label_trn, file_train = genSpoof_list_asvspoof5(dir_meta=protocol_path,
                                                               is_train=True,
@@ -533,7 +533,7 @@ def produce_evaluation_file(
                 assert fn == utt_id
                 fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
 
-            elif config.db_type == 'asvspoof5_train_laundered':
+            elif config.db_type == 'asvspoof5_train_laundered' or config.db_type == 'asvspoof5_train':
                 _, utt_id, _, _, src, key = trl.strip().split(' ')[:6]
 
                 assert fn == utt_id
