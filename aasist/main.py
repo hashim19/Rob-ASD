@@ -159,7 +159,7 @@ def main(args: argparse.Namespace) -> None:
     copy(args.config, model_tag / "config.conf")
 
     # set device
-    device = "cuda:1" if torch.cuda.is_available() else "cpu"
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print("Device: {}".format(device))
     if device == "cpu":
         raise ValueError("GPU not detected!")
