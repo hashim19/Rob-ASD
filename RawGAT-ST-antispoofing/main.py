@@ -166,7 +166,7 @@ if __name__ == '__main__':
 
     # Hyperparameters
     parser.add_argument('--batch_size', type=int, default=10)
-    parser.add_argument('--num_epochs', type=int, default=300)
+    parser.add_argument('--num_epochs', type=int, default=100)
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--weight_decay', type=float, default=0.0001)
     parser.add_argument('--loss', type=str, default='WCE',help='Weighted Cross Entropy Loss ')
@@ -288,7 +288,7 @@ if __name__ == '__main__':
     dir_yaml = os.path.splitext('model_config_RawGAT_ST')[0] + '.yaml'
 
     with open(dir_yaml, 'r') as f_yaml:
-            parser1 = yaml.load(f_yaml)
+            parser1 = yaml.safe_load(f_yaml)
     
     if not os.path.exists('models'):
         os.mkdir('models')
