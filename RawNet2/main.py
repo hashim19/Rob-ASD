@@ -8,9 +8,11 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 import yaml
 from data_utils import genSpoof_list,Dataset_ASVspoof2019_train,Dataset_ASVspoof2021_eval
-from model import RawNet
+from utils import compute_eer
+from model import RawNet2
 from tensorboardX import SummaryWriter
 from core_scripts.startup_config import set_random_seed
+import torch.nn.functional as F
 
 import sys
 sys.path.append("../")
@@ -22,20 +24,46 @@ __email__ = "tak@eurecom.fr"
 __credits__ = ["Jose Patino", "Massimiliano Todisco", "Jee-weon Jung"]
 
 
-def evaluate_accuracy(dev_loader, model, device):
-    num_correct = 0.0
-    num_total = 0.0
-    model.eval()
-    for batch_x, batch_y in dev_loader:
+# def evaluate_accuracy(dev_loader, model, device):
+#     num_correct = 0.0
+#     num_total = 0.0
+#     model.eval()
+#     for batch_x, batch_y in dev_loader:
         
-        batch_size = batch_x.size(0)
-        num_total += batch_size
-        batch_x = batch_x.to(device)
-        batch_y = batch_y.view(-1).type(torch.int64).to(device)
-        batch_out = model(batch_x)
-        _, batch_pred = batch_out.max(dim=1)
-        num_correct += (batch_pred == batch_y).sum(dim=0).item()
-    return 100 * (num_correct / num_total)
+#         batch_size = batch_x.size(0)
+#         num_total += batch_size
+#         batch_x = batch_x.to(device)
+#         batch_y = batch_y.view(-1).type(torch.int64).to(device)
+#         batch_out = model(batch_x)
+#         _, batch_pred = batch_out.max(dim=1)
+#         num_correct += (batch_pred == batch_y).sum(dim=0).item()
+#     return 100 * (num_correct / num_total)
+
+def evaluate_accuracy(
+    dev_loader,
+    model,
+    device):
+    num_total = 0.0
+    num_correct = 0.0
+    model.eval()
+    with torch.no_grad():
+        label_loader, score_loader = [], []
+        for batch_x, batch_y in dev_loader:
+            batch_size = batch_x.size(0)
+            num_total += batch_size
+            batch_x = batch_x.to(device)
+            batch_y = batch_y.view(-1).type(torch.int64).to(device)
+            _,batch_out = model(batch_x)
+            _,batch_pred = batch_out.max(dim=1)
+            num_correct += (batch_pred == batch_y).sum(dim=0).item()
+            score = F.softmax(batch_out, dim=1)[:, 1]
+            label_loader.append(batch_y)
+            score_loader.append(score)
+        scores = torch.cat(score_loader, 0).data.cpu().numpy()
+        labels = torch.cat(label_loader, 0).data.cpu().numpy()
+        val_eer = compute_eer(scores[labels == 1], scores[labels == 0])[0]  
+        val_accuracy = (num_correct / num_total)*100
+        return val_accuracy,val_eer*100
 
 
 def produce_evaluation_file(dataset, model, device, save_path):
@@ -60,7 +88,13 @@ def produce_evaluation_file(dataset, model, device, save_path):
         fh.close()   
     print('Scores saved to {}'.format(save_path))
 
-def train_epoch(train_loader, model, lr,optim, device):
+def train_epoch(
+    train_loader,
+    model,
+    optimizer,
+    device):
+
+    """Training"""
     running_loss = 0
     num_correct = 0.0
     num_total = 0.0
@@ -72,27 +106,27 @@ def train_epoch(train_loader, model, lr,optim, device):
     criterion = nn.CrossEntropyLoss(weight=weight)
     
     for batch_x, batch_y in train_loader:
-       
         batch_size = batch_x.size(0)
         num_total += batch_size
         ii += 1
         batch_x = batch_x.to(device)
         batch_y = batch_y.view(-1).type(torch.int64).to(device)
-        batch_out = model(batch_x)
+        _,batch_out = model(batch_x)
         batch_loss = criterion(batch_out, batch_y)
-        _, batch_pred = batch_out.max(dim=1)
+        _,batch_pred = batch_out.max(dim=1)
         num_correct += (batch_pred == batch_y).sum(dim=0).item()
         running_loss += (batch_loss.item() * batch_size)
         if ii % 10 == 0:
             sys.stdout.write('\r \t {:.2f}'.format(
                 (num_correct/num_total)*100))
-        optim.zero_grad()
+        optimizer.zero_grad()
         batch_loss.backward()
-        optim.step()
+        optimizer.step()
        
     running_loss /= num_total
     train_accuracy = (num_correct/num_total)*100
     return running_loss, train_accuracy
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ASVspoof2021 baseline system')
@@ -243,8 +277,6 @@ if __name__ == '__main__':
         print(dev_df)
 
     eval_out = os.path.join(config.score_dir, 'RawNet2_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
- 
-    model_path = './models/RawNet2_best_model_Asvspoof5.pth'
 
     dir_yaml = os.path.splitext('model_config_RawNet')[0] + '.yaml'
 
@@ -279,23 +311,31 @@ if __name__ == '__main__':
         os.mkdir(model_save_path)
     
     #GPU device
-    device = 'cuda:1' if torch.cuda.is_available() else 'cpu'                  
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'                  
     print('Device: {}'.format(device))
     
     #model 
-    model = RawNet(parser1['model'], device)
+    # model = RawNet2(parser1['model'], device)
+    # nb_params = sum([param.view(-1).size()[0] for param in model.parameters()])
+    # model =(model).to(device)
+
+    #model 
+    model = RawNet2(device)
     nb_params = sum([param.view(-1).size()[0] for param in model.parameters()])
-    model =(model).to(device)
+    model = model.to(device)
+    print('nb_params: {}'.format(nb_params))
     
     #set Adam optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.weight_decay)
-    
-    if model_path:
-        model.load_state_dict(torch.load(model_path,map_location=device))
-        print('Model loaded : {}'.format(model_path))
 
     #evaluation 
     if args.eval:
+
+        model_path = './models/pre_trained_DF_RawNet2.pth'
+        if model_path:
+            model.load_state_dict(torch.load(model_path,map_location=device))
+            print('Model loaded : {}'.format(model_path))
+
         # file_eval = genSpoof_list(dir_meta= eval_ndx, is_train=False, is_eval=True)
         file_eval = eval_df["AUDIO_FILE_NAME"].to_list()
         print('no. of eval trials',len(file_eval))
@@ -345,19 +385,27 @@ if __name__ == '__main__':
     num_epochs = args.num_epochs
     writer = SummaryWriter('logs/{}'.format(model_tag))
     best_acc = 99
+    best_val_eer = 1.
+
     for epoch in range(num_epochs):
-        running_loss, train_accuracy = train_epoch(train_loader,model, args.lr,optimizer, device)
-        valid_accuracy = evaluate_accuracy(dev_loader, model, device)
+        running_loss, train_accuracy = train_epoch(train_loader, model, optimizer, device)
+        val_accuracy, val_err = evaluate_accuracy(dev_loader, model, device)
         writer.add_scalar('train_accuracy', train_accuracy, epoch)
-        writer.add_scalar('valid_accuracy', valid_accuracy, epoch)
-        writer.add_scalar('loss', running_loss, epoch)
-        print('\n{} - {} - {:.2f} - {:.2f}'.format(epoch,
-                                                   running_loss, train_accuracy, valid_accuracy))
-        
-        if valid_accuracy > best_acc:
-            print('best model find at epoch', epoch)
-        best_acc = max(valid_accuracy, best_acc)
-        torch.save(model.state_dict(), os.path.join(model_save_path, 'epoch_{}.pth'.format(epoch)))
+        writer.add_scalar('val_accuracy', val_accuracy, epoch)
+        writer.add_scalar('training_loss', running_loss, epoch)
+        writer.add_scalar('val_EER', val_err, epoch)
+        print('\n{} - {} - {:.2f} - {:.2f} - {:.2f}'.format(epoch,
+                                                   running_loss, train_accuracy, val_accuracy,val_err))
+        # logging.info(
+        #     f"[{epoch}]: train_loss: {running_loss} - train_acc: {train_accuracy} - val_acc: {val_accuracy} - val_eer: {val_err}"
+        # )
+
+        if best_val_eer >= val_err:
+            print("best model find at epoch", epoch)
+            best_val_eer = val_err
+            torch.save(model.state_dict(),
+                       os.path.join(model_save_path, "epoch_{}_{:03.3f}.pth".format(epoch, val_err)))
+                    #    model_save_path + / + "epoch_{}_{}.pth".format(epoch, val_err))
 
     # print("removing the temporary protocol file!")
     # os.remove(eval_ndx)
