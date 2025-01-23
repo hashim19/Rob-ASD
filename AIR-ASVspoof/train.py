@@ -46,7 +46,7 @@ def initParams():
     parser.add_argument('--beta_1', type=float, default=0.9, help="bata_1 for Adam")
     parser.add_argument('--beta_2', type=float, default=0.999, help="beta_2 for Adam")
     parser.add_argument('--eps', type=float, default=1e-8, help="epsilon for Adam")
-    parser.add_argument("--gpu", type=str, help="GPU index", default="1")
+    parser.add_argument("--gpu", type=str, help="GPU index", default="0")
     parser.add_argument('--num_workers', type=int, default=0, help="number of workers")
     parser.add_argument('--seed', type=int, help="random number seed", default=598)
 
@@ -132,9 +132,9 @@ def train(args):
     
     else:
         training_set = ASVspoofLaundered(args.path_to_features, args.path_to_protocol, config.protocol_filenames, 'train',
-                                     'LFCC', genuine_only = False, feat_len=args.feat_len, padding=args.padding)
+                                     'LFCC', genuine_only = False, feat_len=args.feat_len, padding=args.padding, feature_format=config.feature_format)
         validation_set = ASVspoofLaundered(args.path_to_features, args.path_to_protocol, config.protocol_filenames, 'dev',
-                                       'LFCC', genuine_only = False, feat_len=args.feat_len, padding=args.padding)
+                                       'LFCC', genuine_only = False, feat_len=args.feat_len, padding=args.padding, feature_format=config.feature_format)
         
     trainDataLoader = DataLoader(training_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
                                  collate_fn=training_set.collate_fn)

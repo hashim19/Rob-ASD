@@ -170,7 +170,7 @@ class InTheWild(Dataset):
 
 class ASVspoofLaundered(Dataset):
     def __init__(self, path_to_features, path_to_protocol, protocol_filenames, part='train', feature='LFCC',
-                 genuine_only=False, feat_len=750, padding='repeat', feature_format='.pkl', num_columns=7):
+                 genuine_only=False, feat_len=750, padding='repeat', feature_format='pkl', num_columns=7):
         
         self.path_to_features = path_to_features
         self.part = part
@@ -243,7 +243,7 @@ class ASVspoofLaundered(Dataset):
                     feat_mat = h5f[filename][()]
 
             elif self.feature_format == 'pkl':
-                print(self.ptf + '/' + filename + '.pkl')
+                # print(self.ptf + '/' + filename + '.pkl')
                 with open(self.ptf + '/' + filename + '.pkl', 'rb') as feature_handle:
                     feat_mat = pickle.load(feature_handle)
         except:
