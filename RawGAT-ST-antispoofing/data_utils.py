@@ -116,35 +116,69 @@ class ASVDataset(Dataset):
         self.files_meta_ls = [self.parse_protocols_file(pf) for pf in self.protocols_fname]
         self.files_meta = flatten(self.files_meta_ls)
 
-        data = list(map(self.read_file, self.files_meta))
+        # print(self.files_meta)
 
-        if config.db_type == 'in_the_wild':
-            self.data_x, self.data_y = map(list, zip(*data))
+        # data = list(map(self.read_file, self.files_meta))
 
-        else:
-            self.data_x, self.data_y, self.data_sysid = map(list, zip(*data))
+        # if config.db_type == 'in_the_wild':
+        #     self.data_x, self.data_y = map(list, zip(*data))
+
+        # else:
+        #     self.data_x, self.data_y, self.data_sysid = map(list, zip(*data))
         
-        if self.transform:
-            self.data_x = Parallel(n_jobs=4, prefer='threads')(delayed(self.transform)(x) for x in self.data_x)
-        # torch.save((self.data_x, self.data_y, self.data_sysid, self.files_meta), self.cache_fname)
+        # if self.transform:
+        #     self.data_x = Parallel(n_jobs=4, prefer='threads')(delayed(self.transform)(x) for x in self.data_x)
+        # # torch.save((self.data_x, self.data_y, self.data_sysid, self.files_meta), self.cache_fname)
             
-        if sample_size:
-            select_idx = np.random.choice(len(self.files_meta), size=(sample_size,), replace=True).astype(np.int32)
-            self.files_meta= [self.files_meta[x] for x in select_idx]
-            self.data_x = [self.data_x[x] for x in select_idx]
-            self.data_y = [self.data_y[x] for x in select_idx]
-            if config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_train_laundered' or config.db_type == 'asvspoof_eval':
-                self.data_sysid = [self.data_sysid[x] for x in select_idx]
+        # if sample_size:
+        #     select_idx = np.random.choice(len(self.files_meta), size=(sample_size,), replace=True).astype(np.int32)
+        #     self.files_meta= [self.files_meta[x] for x in select_idx]
+        #     self.data_x = [self.data_x[x] for x in select_idx]
+        #     self.data_y = [self.data_y[x] for x in select_idx]
+        #     if config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_train_laundered' or config.db_type == 'asvspoof_eval':
+        #         self.data_sysid = [self.data_sysid[x] for x in select_idx]
             
-        self.length = len(self.data_x)
+        self.length = len(self.files_meta)
 
     def __len__(self):
         return self.length
 
     def __getitem__(self, idx):
-        x = self.data_x[idx]
-        y = self.data_y[idx]
-        return x, y, self.files_meta[idx]
+
+        # print("Reading file idx {}".format(idx))
+
+        files_meta_idx = self.files_meta[idx]
+
+        # print(files_meta_idx)
+        # print(files_meta_idx.path)
+
+        # data_idx = list(map(self.read_file, files_meta_idx))
+        data_idx = self.read_file(files_meta_idx)
+
+        # print(data_idx)
+
+        if config.db_type == 'in_the_wild':
+            self.data_x, self.data_y = map(list, zip(*data_idx))
+
+        else:
+            # self.data_x, self.data_y, self.data_sysid = map(list, zip(*data_idx))
+            (self.data_x, self.data_y, self.data_sysid) = data_idx
+
+        # print(self.data_x)
+        # print(self.data_y)
+        # print(self.data_sysid)
+
+        if self.transform:
+            # self.data_x = Parallel(n_jobs=4, prefer='threads')(delayed(self.transform)(x) for x in self.data_x)
+            self.data_x = self.transform(self.data_x)
+
+        # x = self.data_x[idx]
+        # y = self.data_y[idx]
+        
+        x = self.data_x
+        y = self.data_y
+
+        return x, y, files_meta_idx
 
     def read_file(self, meta):
         
