@@ -136,8 +136,8 @@ if __name__ == "__main__":
 
         elif data_type == 'train' or data_type == 'dev':
 
-            # pathToDatabase = os.path.join(db_folder, data_name, 'flac')
-            pathToDatabase = os.path.join(db_folder, 'flac')
+            pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+            # pathToDatabase = os.path.join(db_folder, 'flac')
 
             protocol_file_path = os.path.join(db_folder, 'protocols', protocol_filename)
 
