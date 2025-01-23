@@ -17,6 +17,9 @@ ASVFile = collections.namedtuple('ASVFile',
 WildFile = collections.namedtuple('WildFile',
     ['file_name', 'speaker_id', 'path', 'key'])
 
+def flatten(xss):
+    return [x for xs in xss for x in xs]
+
 class ASVDataset(Dataset):
     """ Utility class to load  train/dev/Eval datatsets """
     def __init__(self, database_path=None,protocols_path=None,transform=None, 
@@ -110,7 +113,8 @@ class ASVDataset(Dataset):
         # else:
         # self.files_meta = self.parse_protocols_file(self.protocols_fname)
 
-        self.files_meta = [self.parse_protocols_file(pf) for pf in self.protocols_fname][0]
+        self.files_meta_ls = [self.parse_protocols_file(pf) for pf in self.protocols_fname]
+        self.files_meta = flatten(self.files_meta_ls)
 
         data = list(map(self.read_file, self.files_meta))
 
