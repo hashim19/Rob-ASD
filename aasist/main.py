@@ -81,6 +81,8 @@ def main(args: argparse.Namespace) -> None:
     pathToDatabase_train = []
     pathToDatabase_dev = []
 
+    eval_file = '_'.join(('AASIST', config.Aug_strategy, config.Aug_type))
+
     for data_name, protocol_filename, data_type in zip(data_names, protocol_filenames, data_types):
 
         print(data_name)
@@ -98,31 +100,38 @@ def main(args: argparse.Namespace) -> None:
 
                 eval_pf_ls.append(evalProtocolFile)
 
+                eval_file = '_'.join((eval_file, 'eval_ITW'))
+
             elif db_type == 'asvspoof_eval_laundered':
                 pathToDatabase = os.path.join(db_folder, 'flac')
 
-                evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+                # evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
                 
                 # create a temporary protocol file, this file will be used by test.py
-                evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
-                evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
-                evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
-                evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+                # evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+                # evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+                # evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
+                # evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
 
-                evalProtocolFile_tmp = os.path.join(db_folder, 'protocols', evalProtocolFile.split('.')[0] + '_' 'tmp.txt')
+                # evalProtocolFile_tmp = os.path.join(db_folder, 'protocols', evalProtocolFile.split('.')[0] + '_' 'tmp.txt')
+                evalProtocolFile_tmp = os.path.join(db_folder, 'protocols', evalProtocolFile)
 
                 eval_pf_ls.append(evalProtocolFile_tmp)
+
+                eval_file = '_'.join((eval_file, 'eval_ASVSpoofLD_sampled'))
 
             elif db_type == 'asvspoof_eval':
                 pathToDatabase = os.path.join(db_folder, 'flac')
 
                 eval_pf_ls.append(evalProtocolFile)
 
+                eval_file = '_'.join((eval_file, 'eval_ASV19'))
+
             pathToDatabase_eval.append(pathToDatabase)
 
         elif data_type == 'train' or data_type == 'dev':
 
-            pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+            pathToDatabase = os.path.join(db_folder, data_name)
 
             protocol_file_path = os.path.join(db_folder, 'protocols', protocol_filename)
 
@@ -153,19 +162,26 @@ def main(args: argparse.Namespace) -> None:
         model_tag = model_tag + "_{}".format(args.comment)
     model_tag = output_dir / model_tag
     model_save_path = model_tag / "weights"
-    eval_score_path = score_dir / Path('AASIST_' + laundering_type + '_' + laundering_param + '_' + str(args_config["eval_output"]))
+    # eval_score_path = os.path.join(score_dir, Path(eval_file + '_' + args.comment + '_' + str(args_config["eval_output"])))
+    eval_score_path = os.path.join(score_dir, Path(eval_file + '_' + str(args_config["eval_output"])))
+    
     writer = SummaryWriter(model_tag)
     os.makedirs(model_save_path, exist_ok=True)
     copy(args.config, model_tag / "config.conf")
 
     # set device
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    device = "cuda:1" if torch.cuda.is_available() else "cpu"
     print("Device: {}".format(device))
     if device == "cpu":
         raise ValueError("GPU not detected!")
 
     # define model architecture
     model = get_model(model_config, device)
+
+    # model.load_state_dict(
+    #         torch.load(args_config["model_path"], map_location=device))
+    
+    # print("Model loaded : {}".format(args_config["model_path"]))
 
     # define dataloaders
     # trn_loader, dev_loader, eval_loader = get_loader(
@@ -203,7 +219,7 @@ def main(args: argparse.Namespace) -> None:
     optimizer, scheduler = create_optimizer(model.parameters(), optim_config)
     optimizer_swa = SWA(optimizer)
 
-    best_dev_eer = 1.
+    best_dev_eer = 1
     best_eval_eer = 100.
     best_dev_tdcf = 0.05
     best_eval_tdcf = 1.

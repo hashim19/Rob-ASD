@@ -189,7 +189,25 @@ orig_protocol_file = '../ASVspoof2019.LA.cm.eval.trl.txt'
 
 # check_audio_valid(data_dir, cf=False, dst=dst_dir)
 
-update_protocol_file(protocol_file)
+# in the wild data information
+evalprotcol_df = pd.read_csv(protocol_file, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"]).iloc[1:]
+
+print(evalprotcol_df)
+
+speakers = evalprotcol_df['Speaker_Id'].unique()
+speaker_count = evalprotcol_df['Speaker_Id'].nunique()
+
+print(speakers)
+print(speaker_count)
+
+bonafide_utt = evalprotcol_df[evalprotcol_df['KEY'] == 'bona-fide']
+spoof_utt = evalprotcol_df[evalprotcol_df['KEY'] == 'spoof']
+
+counts = evalprotcol_df['KEY'].value_counts()
+
+print(counts)
+
+# update_protocol_file(protocol_file)
 
 # # read the protcol file
 # evalprotcol_df = pd.read_csv(protocol_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_for_LA", "SYSTEM_ID", "KEY"])

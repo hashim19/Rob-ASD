@@ -14,18 +14,23 @@ def gen_score_file(score_file, protocl_file, out_dir='out_dir'):
     if config.db_type == 'in_the_wild':
         evalprotcol = pd.read_csv(protocl_file, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
     elif config.db_type == 'asvspoof_eval_laundered':      
-        evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY","Laundering_Type", "Laundering_Param"])
+        evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "Not_Used_For_LA", "KEY"], usecols=range(5))
 
     elif config.db_type == 'asvspoof_eval':
-        evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"])
+        # evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"])
+        evalprotcol = pd.read_csv(protocl_file, sep=" ", names=["Speaker_Id", "AUDIO_FILE_NAME", "Random Shit", "SYSTEM_ID", "Not_Used_For_LA", "KEY"], usecols=range(6))
+
+    elif config.db_type == 'FF':
+        evalprotcol = pd.read_csv(protocl_file, sep=',', names=["AUDIO_FILE_NAME", "Speaker_Id", "KEY"])
 
     print(evalprotcol)
 
     # read score file
     evalscores = pd.read_csv(score_file, sep=" ", names=["AUDIO_FILE_NAME", "Scores"])
     # evalscores = pd.read_csv(score_file, sep=" ", names=["AUDIO_FILE_NAME", "SYSTEM_ID_1", "KEY_1", "Scores"])
+    evalscores["AUDIO_FILE_NAME"] = evalscores["AUDIO_FILE_NAME"].str.split('.', expand=True)[0]
     
-    # print(evalscores)
+    print(evalscores)
 
     merged_df = pd.merge(evalprotcol, evalscores, on='AUDIO_FILE_NAME')
 
@@ -71,6 +76,11 @@ def compute_equal_error_rate(cm_score_file):
     # other_cm_scores = -cm_scores
 
     # Extract bona fide (real human) and spoof scores from the CM scores
+    # y_scores = [1.5, 2.0, 3.6, 1.2]
+    # y_true = [1, -1, 1, 1]
+    # bona_cm = [1.5, 3.6, 1.2]
+    # spoof_cm = [2.0]
+
     bona_cm = cm_scores[cm_keys == 'bonafide']
     spoof_cm = cm_scores[cm_keys == 'spoof']
 
@@ -102,7 +112,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # protocol_file_path = args.score_file_dir + args.protocol_filename
-    protocol_file_path = os.path.join(config.db_folder, 'protocols', config.protocol_filenames[0])
+    # protocol_file_path = os.path.join(config.db_folder, 'protocols', config.protocol_filenames[0])
+    protocol_file_path = './ff_protocol.txt'
     # protocol_file_path = os.path.join('/data/Data/AsvSpoofData_2019_protocols', 'RT_0_3_protocol.txt')
 
     score_file_path = os.path.join(args.score_file_dir, args.score_filename)

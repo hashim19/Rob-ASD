@@ -209,10 +209,10 @@ class ASVspoofLaundered(Dataset):
         for protocol in protocol_paths:
 
             if config.db_type == 'asvspoof_train_laundered':
-                protocol_df = pd.read_csv(protocol, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+                protocol_df = pd.read_csv(protocol, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"], usecols=range(5))
             
             elif config.db_type == 'asvspoof_eval_laundered':
-                protocol_df = pd.read_csv(protocol, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+                protocol_df = pd.read_csv(protocol, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"], usecols=range(5))
 
             if genuine_only:
                 assert self.part in ["train", "dev"]
@@ -230,10 +230,12 @@ class ASVspoofLaundered(Dataset):
     def __getitem__(self, idx):
         # speaker, filename, _, tag, label = self.all_info[idx]
         if config.db_type == 'asvspoof_train_laundered':
-            speaker, filename, _, tag, label, ld, lp = self.protocol_df.iloc[idx]
+            # speaker, filename, _, tag, label, ld, lp = self.protocol_df.iloc[idx]
+            speaker, filename, _, tag, label = self.protocol_df.iloc[idx]
         
         elif config.db_type == 'asvspoof_eval_laundered':
-            speaker, filename, tag, label, ld, lp = self.protocol_df.iloc[idx]
+            # speaker, filename, tag, label, ld, lp = self.protocol_df.iloc[idx]
+            speaker, filename, _, tag, label = self.protocol_df.iloc[idx]
 
         try:
             if self.feature_format == 'h5f':

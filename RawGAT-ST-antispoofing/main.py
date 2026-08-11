@@ -5,6 +5,7 @@ import data_utils
 import numpy as np
 from torch import Tensor
 from torch.utils.data import DataLoader
+from utils import compute_eer
 from torchvision import transforms
 import yaml
 import torch
@@ -12,6 +13,8 @@ from torch import nn
 from model import RawGAT_ST  # In main model script we used our best RawGAT-ST-mul model. To use other models you need to call revelant model scripts from RawGAT_models folder
 from tensorboardX import SummaryWriter
 from core_scripts.startup_config import set_random_seed
+import torch.nn.functional as F
+from tqdm import tqdm
 
 import sys
 sys.path.append("../")
@@ -28,31 +31,43 @@ def pad(x, max_len=64600):
     return padded_x
 
 
-def evaluate_accuracy(data_loader, model, device):
+def evaluate_accuracy(
+    dev_loader,
+    model,
+    device):
+
     val_loss = 0.0
     num_total = 0.0
+    
     model.eval()
 
-    
     weight = torch.FloatTensor([0.1, 0.9]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weight)
 
-    for batch_x, batch_y, batch_meta in data_loader:
-        
-        batch_size = batch_x.size(0)
-        num_total += batch_size
-        
-        batch_x = batch_x.to(device)
-        batch_y = batch_y.view(-1).type(torch.int64).to(device)
-        
-        batch_out = model(batch_x,Freq_aug=False)
-        
-        batch_loss = criterion(batch_out, batch_y)
-        val_loss += (batch_loss.item() * batch_size)
-        
-    val_loss /= num_total
-   
-    return val_loss
+    with torch.no_grad():
+        label_loader, score_loader = [], []
+        for batch_x, batch_y, batch_meta in dev_loader:
+            batch_size = batch_x.size(0)
+            num_total += batch_size
+            batch_x = batch_x.to(device)
+            batch_y = batch_y.view(-1).type(torch.int64).to(device)
+
+            batch_out = model(batch_x,Freq_aug=False)
+
+            batch_loss = criterion(batch_out, batch_y)
+            val_loss += (batch_loss.item() * batch_size)
+            
+            score = F.softmax(batch_out, dim=1)[:, 1]
+
+            label_loader.append(batch_y)
+            score_loader.append(score)
+
+        val_loss /= num_total
+        scores = torch.cat(score_loader, 0).data.cpu().numpy()
+        labels = torch.cat(label_loader, 0).data.cpu().numpy()
+        val_eer = compute_eer(scores[labels == 1], scores[labels == 0])[0] 
+
+        return val_loss, val_eer*100
 
 
 def produce_evaluation_file(dataset, model, device, save_path):
@@ -116,7 +131,7 @@ def train_epoch(data_loader, model, lr,optimizer, device):
     weight = torch.FloatTensor([0.1, 0.9]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weight)
     
-    for batch_x, batch_y, batch_meta in data_loader:
+    for batch_x, batch_y, batch_meta in tqdm(data_loader):
         
         batch_size = batch_x.size(0)
 
@@ -218,6 +233,8 @@ if __name__ == '__main__':
     pathToDatabase_train = []
     pathToDatabase_dev = []
 
+    eval_file = '_'.join(('RawGAT', config.Aug_strategy, config.Aug_type))
+
     for data_name, protocol_filename, data_type in zip(data_names, protocol_filenames, data_types):
 
         print(data_name)
@@ -235,20 +252,26 @@ if __name__ == '__main__':
 
                 eval_pf_ls.append(evalProtocolFile)
 
+                eval_file = '_'.join((eval_file, 'eval_ITW'))
+
             elif db_type == 'asvspoof_eval_laundered':
                 pathToDatabase = os.path.join(db_folder, 'flac')
 
-                evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+                # evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
                 
-                # create a temporary protocol file, this file will be used by test.py
-                evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
-                evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
-                evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
-                evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+                # # create a temporary protocol file, this file will be used by test.py
+                # evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+                # evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+                # evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
+                # evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
 
-                evalProtocolFile_tmp = os.path.join(db_folder, 'protocols', evalProtocolFile.split('.')[0] + '_' 'tmp.txt')
+                # evalProtocolFile_tmp = os.path.join(db_folder, 'protocols', evalProtocolFile.split('.')[0] + '_' 'tmp.txt')
+
+                evalProtocolFile_tmp = os.path.join(db_folder, 'protocols', evalProtocolFile)
 
                 eval_pf_ls.append(evalProtocolFile_tmp)
+
+                eval_file = '_'.join((eval_file, 'eval_ASVSpoofLD_sampled'))
 
             elif db_type == 'asvspoof_eval':
                 pathToDatabase = os.path.join(db_folder, 'flac')
@@ -259,9 +282,11 @@ if __name__ == '__main__':
 
                 eval_pf_ls.append(evalProtocolFile)
 
+                eval_file = '_'.join((eval_file, 'eval_ASV19'))
+
         elif data_type == 'train' or data_type == 'dev':
 
-            pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+            pathToDatabase = os.path.join(db_folder, data_name)
 
             protocol_file_path = os.path.join(db_folder, 'protocols', protocol_filename)
 
@@ -280,7 +305,10 @@ if __name__ == '__main__':
                 pathToDatabase_dev.append(pathToDatabase)
 
 
-    eval_out = os.path.join(config.score_dir, 'RawGAT_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
+    eval_out = os.path.join(config.score_dir, eval_file + '_scores.txt')
+    
+    if not os.path.exists(config.score_dir):
+        os.makedirs(config.score_dir)
 
     # model_path = './Pre_trained_models/RawGAT_ST_mul/Best_epoch.pth'
 
@@ -322,27 +350,32 @@ if __name__ == '__main__':
 
 
     #GPU device
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'                  
+    device = 'cuda:2' if torch.cuda.is_available() else 'cpu'
+    # device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")                  
     print('Device: {}'.format(device))
     
     #model 
     model = RawGAT_ST(parser1['model'], device)
+    
+    # model= nn.DataParallel(model, device_ids = [1, 2]) #for using multiple gpus
+
     nb_params = sum([param.view(-1).size()[0] for param in model.parameters()])
     model =(model).to(device)
 
     # Adam optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.weight_decay)
 
+    # model_path = os.path.join(model_save_path, 'epoch_291_Best.pth')
+    model_path = "./models/model_logical_WCE_100_16_0.0001_Noise_Addition/epoch_53_0.464_best.pth"
+
+    if model_path:
+        model.load_state_dict(torch.load(model_path,map_location=device))
+        print('Model loaded : {}'.format(model_path))
+
     # Inference
     if args.eval:
         # assert args.eval_output is not None, 'You must provide an output path'
         # assert args.model_path is not None, 'You must provide model checkpoint'
-
-        model_path = os.path.join(model_save_path, 'epoch_291_Best.pth')
-
-        if model_path:
-            model.load_state_dict(torch.load(model_path,map_location=device))
-            print('Model loaded : {}'.format(model_path))
 
         # evaluation Dataloader
         print(pathToDatabase)
@@ -373,22 +406,29 @@ if __name__ == '__main__':
     writer = SummaryWriter('logs/{}'.format(model_tag))
     
     best_loss = 0.1
+    best_val_eer = 1
     for epoch in range(num_epochs):
         
         running_loss = train_epoch(train_loader,model, args.lr,optimizer, device)
-        val_loss = evaluate_accuracy(dev_loader, model, device)
+        val_loss, val_eer = evaluate_accuracy(dev_loader, model, device)
         writer.add_scalar('val_loss', val_loss, epoch)
         writer.add_scalar('loss', running_loss, epoch)
         print('\n{} - {} - {} '.format(epoch, running_loss, val_loss))
 
-        if val_loss < best_loss:
-            print('best model find at epoch', epoch)
+        # if val_loss < best_loss:
+        #     print('best model find at epoch', epoch)
 
         
-            torch.save(model.state_dict(), os.path.join(
-                model_save_path, 'epoch_{}_{}.pth'.format(epoch, val_loss)))
+        #     torch.save(model.state_dict(), os.path.join(
+        #         model_save_path, 'epoch_{}_{}.pth'.format(epoch, val_loss)))
 
-            best_loss = min(val_loss, best_loss)
+        #     best_loss = min(val_loss, best_loss)
+
+        if best_val_eer >= val_eer:
+            print("best model find at epoch", epoch)
+            best_val_eer = val_eer
+            torch.save(model.state_dict(),
+                       os.path.join(model_save_path, "epoch_{}_{:03.3f}.pth".format(epoch, val_eer)))
 
 
 

@@ -6,6 +6,7 @@ import lzma
 import mgzip
 import gzip
 import h5py
+import pandas as pd
 
 import shutil
 
@@ -13,90 +14,147 @@ feat_dir = '/data/Features/'
 
 feat_out_dir = 'npy'
 
-laundering_type = 'Filtering'
+# laundering_type = 'Filtering'
+laundering_types = ['Reverberation', 'Noise_Addition', 'Recompression', 'Resampling', 'Filtering']
+
 # laundering_params = ['AsvSpoofData_2019_babble_0_0_5', 'AsvSpoofData_2019_babble_10_10_5', 'AsvSpoofData_2019_babble_20_20_5', 'AsvSpoofData_2019_cafe_0_0_5', 'AsvSpoofData_2019_cafe_10_10_5',
 #                         'AsvSpoofData_2019_cafe_20_20_5', 'AsvSpoofData_2019_street_0_0_5', 'AsvSpoofData_2019_street_10_10_5', 'AsvSpoofData_2019_street_20_20_5',
 #                         'AsvSpoofData_2019_volvo_0_0_5', 'AsvSpoofData_2019_volvo_10_10_5', '']
 
-laundering_dir = os.path.join(feat_dir, laundering_type)
-laundering_params = os.listdir(laundering_dir)
+# laundering_dir = os.path.join(feat_dir, laundering_type)
+# laundering_params = os.listdir(laundering_dir)
 # laundering_params = ['babble_0']
 
-print(laundering_params)
+# print(laundering_params)
 # laundering_params.remove('recompression_128k')
 # print(laundering_params)
 
-feat_types = ['cqcc_features', 'lfcc_features', 'lfcc_features_airasvspoof']
-# feat_types = ['lfcc_features_airasvspoof']
+# feat_types = ['cqcc_features', 'lfcc_features', 'lfcc_features_airasvspoof']
+feat_type = 'lfcc_features_airasvspoof'
+
+out_dir = os.path.join(feat_dir, 'all_laundering_attacks', 'all')
+
+if not os.path.exists(out_dir):
+    os.makedirs(out_dir)
+
+out_fullfile_h5 = os.path.join(out_dir, feat_type + '.h5')
+
+# read sampled protocol file
+sampled_pf = '/data/Data/ASVSpoofLaunderedDatabase/ASVSpoofLaunderedDatabase/protocols/ASVspoofLauneredDatabase_all_laundering_attacks_sampled.txt'
+
+sampled_pf_df = pd.read_csv(sampled_pf, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "Not_Used_for_LA", "KEY"], index_col=0)
+
+audio_filenames = sampled_pf_df["AUDIO_FILE_NAME"].to_list()
+
+# if not os.path.exists(out_fullfile_h5):
+
+with h5py.File(out_fullfile_h5, 'w') as all_ld_file:
+
+    for ld in laundering_types:
+        
+        laundering_dir = os.path.join(feat_dir, ld)
+        laundering_params = os.listdir(laundering_dir)
+
+        for lp in laundering_params:
+
+            ld_lp_dir = os.path.join(laundering_dir, lp)
+
+            ld_lp_ft_file = os.path.join(ld_lp_dir, feat_type + '.h5')
+
+            with h5py.File(ld_lp_ft_file, 'r') as ft_file:
+        
+                for name, dataset in ft_file.items():
+                    print(name, dataset.shape, dataset.dtype)
+
+                    if name in audio_filenames:
+
+                        print("Audio file {} is from the sampled list".format(name))
+
+                        dset = all_ld_file.create_dataset(name, data=dataset, dtype=np.float32)
+
+                    else:
+
+                        print("audio is not in sampled list")
 
 
-for lp in laundering_params:
 
-    for ft in feat_types:
-
-        out_dir = os.path.join(laundering_dir, lp)
-        # out_dir = feat_dir_ft
-
-        if not os.path.exists(out_dir):
-            os.makedirs(out_dir)
-
-        out_fullfile_h5 = os.path.join(out_dir, ft + '.h5')
-
-        # reading from hdf5 file
-        # with h5py.File(out_fullfile_h5, 'r') as h5f:
+                        # name_ls = name.split('_')
+                        # new_filename = '_'.join((name_ls[0], name_ls[1], name_ls[2], name_ls[3], name_ls[4]))
+                        # print(new_filename)
+                        # h5f.move(name, )
             
-        #     for name, dataset in h5f.items():
-        #         print(name, dataset.shape, dataset.dtype)
+            # h5f['ext link'] = h5py.ExternalLink(feat_type + '.h5', ld_lp__dir)
 
-                # name_ls = name.split('_')
-                # new_filename = '_'.join((name_ls[0], name_ls[1], name_ls[2], name_ls[3], name_ls[4]))
-                # print(new_filename)
-                # h5f.move(name, )
 
-        if not os.path.exists(out_fullfile_h5):
 
-            feat_dir_ft = os.path.join(laundering_dir, lp, ft, 'eval')
 
-            # list all files in the directory
-            feat_files = os.listdir(feat_dir_ft)
+# for lp in laundering_params:
 
-            with h5py.File(out_fullfile_h5, 'w') as h5f:
+#     for ft in feat_types:
 
-                for i, feat_pkl_file in enumerate(feat_files):
+#         out_dir = os.path.join(laundering_dir, lp)
+#         # out_dir = feat_dir_ft
 
-                    # print(feat_pkl_file)
+#         if not os.path.exists(out_dir):
+#             os.makedirs(out_dir)
 
-                    filename_ls = feat_pkl_file.split('_')
+#         out_fullfile_h5 = os.path.join(out_dir, ft + '.h5')
 
-                    new_filename = '_'.join((filename_ls[0], filename_ls[1], filename_ls[2], 'lpf_7000')) + '.pkl'
+#         # reading from hdf5 file
+#         # with h5py.File(out_fullfile_h5, 'r') as h5f:
+            
+#         #     for name, dataset in h5f.items():
+#         #         print(name, dataset.shape, dataset.dtype)
 
-                    print(new_filename)
+#                 # name_ls = name.split('_')
+#                 # new_filename = '_'.join((name_ls[0], name_ls[1], name_ls[2], name_ls[3], name_ls[4]))
+#                 # print(new_filename)
+#                 # h5f.move(name, )
 
-                    feat_pkl_fullfile = os.path.join(feat_dir_ft, feat_pkl_file)
+#         if not os.path.exists(out_fullfile_h5):
 
-                    try:
-                        with open(feat_pkl_fullfile, 'rb') as pf:
-                            feat_data = pickle.load(pf)
+#             feat_dir_ft = os.path.join(laundering_dir, lp, ft, 'eval')
+
+#             # list all files in the directory
+#             feat_files = os.listdir(feat_dir_ft)
+
+#             with h5py.File(out_fullfile_h5, 'w') as h5f:
+
+#                 for i, feat_pkl_file in enumerate(feat_files):
+
+#                     # print(feat_pkl_file)
+
+#                     filename_ls = feat_pkl_file.split('_')
+
+#                     new_filename = '_'.join((filename_ls[0], filename_ls[1], filename_ls[2], 'lpf_7000')) + '.pkl'
+
+#                     print(new_filename)
+
+#                     feat_pkl_fullfile = os.path.join(feat_dir_ft, feat_pkl_file)
+
+#                     try:
+#                         with open(feat_pkl_fullfile, 'rb') as pf:
+#                             feat_data = pickle.load(pf)
                     
-                    except:
-                        print("Not able to open pickle file using normal pickle open method")
+#                     except:
+#                         print("Not able to open pickle file using normal pickle open method")
 
-                        feat_data = pickle_blosc.unpickle(feat_pkl_fullfile)
+#                         feat_data = pickle_blosc.unpickle(feat_pkl_fullfile)
 
-                    print(feat_data.shape) 
+#                     print(feat_data.shape) 
 
-                    print("Saving {} features for file {} at iteration {} in hdf5 format".format(ft, feat_pkl_file, i))
+#                     print("Saving {} features for file {} at iteration {} in hdf5 format".format(ft, feat_pkl_file, i))
 
-                    # out_fullfile = os.path.join(out_dir, feat_pkl_file)
-                    # pickle_blosc.pickle(feat_data, out_fullfile)
+#                     # out_fullfile = os.path.join(out_dir, feat_pkl_file)
+#                     # pickle_blosc.pickle(feat_data, out_fullfile)
 
-                    # print(feat_data)
+#                     # print(feat_data)
 
-                    dset = h5f.create_dataset(new_filename.split('.')[0], data=feat_data, dtype=np.float32)
+#                     dset = h5f.create_dataset(new_filename.split('.')[0], data=feat_data, dtype=np.float32)
 
-        else:
+#         else:
 
-            print("{} dataset already created".format(out_fullfile_h5))
+#             print("{} dataset already created".format(out_fullfile_h5))
 
         ######### delete feature directory ########
 

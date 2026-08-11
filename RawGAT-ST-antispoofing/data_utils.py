@@ -116,8 +116,6 @@ class ASVDataset(Dataset):
         self.files_meta_ls = [self.parse_protocols_file(pf) for pf in self.protocols_fname]
         self.files_meta = flatten(self.files_meta_ls)
 
-        # print(self.files_meta)
-
         # data = list(map(self.read_file, self.files_meta))
 
         # if config.db_type == 'in_the_wild':
@@ -138,10 +136,16 @@ class ASVDataset(Dataset):
         #     if config.db_type == 'asvspoof_eval_laundered' or config.db_type == 'asvspoof_train_laundered' or config.db_type == 'asvspoof_eval':
         #         self.data_sysid = [self.data_sysid[x] for x in select_idx]
             
+        # self.length = len(self.data_x)
         self.length = len(self.files_meta)
 
     def __len__(self):
         return self.length
+
+    # def __getitem__(self, idx):
+    #     x = self.data_x[idx]
+    #     y = self.data_y[idx]
+    #     return x, y, self.files_meta[idx]
 
     def __getitem__(self, idx):
 
@@ -158,7 +162,9 @@ class ASVDataset(Dataset):
         # print(data_idx)
 
         if config.db_type == 'in_the_wild':
-            self.data_x, self.data_y = map(list, zip(*data_idx))
+            # self.data_x, self.data_y = map(list, zip(*data_idx))
+
+            (self.data_x, self.data_y) = data_idx
 
         else:
             # self.data_x, self.data_y, self.data_sysid = map(list, zip(*data_idx))

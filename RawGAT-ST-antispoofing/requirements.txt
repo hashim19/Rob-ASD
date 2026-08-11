@@ -7,3 +7,4 @@ tensorboardX==2.2
 SoundFile
 pandas
 protobuf==3.20.*
+tqdm

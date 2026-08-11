@@ -113,11 +113,11 @@ if __name__ == "__main__":
                 evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
                 
                 # create a temporary protocol file, this file will be used by test.py
-                evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
-                evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
-                evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+                # evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+                # evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+                # evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
 
-                filelist = evalprotcol_tmp["AUDIO_FILE_NAME"].to_list()
+                filelist = evalprotcol["AUDIO_FILE_NAME"].to_list()
 
             elif db_type == 'asvspoof_eval':
                 pathToDatabase = os.path.join(db_folder, 'flac')
@@ -136,8 +136,8 @@ if __name__ == "__main__":
 
         elif data_type == 'train' or data_type == 'dev':
 
-            pathToDatabase = os.path.join(db_folder, data_name, 'flac')
-            # pathToDatabase = os.path.join(db_folder, 'flac')
+            # pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+            pathToDatabase = os.path.join(db_folder, data_name)
 
             protocol_file_path = os.path.join(db_folder, 'protocols', protocol_filename)
 
@@ -145,7 +145,7 @@ if __name__ == "__main__":
                 protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Gender", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
             
             else:
-                protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+                protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"], usecols=range(5))
 
             print(protocol_df)
 

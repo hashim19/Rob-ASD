@@ -75,7 +75,7 @@ def produce_evaluation_file(dataset, model, device, save_path):
         score_list = []  
         batch_size = batch_x.size(0)
         batch_x = batch_x.to(device)
-        batch_out = model(batch_x)
+        _, batch_out = model(batch_x)
         batch_score = (batch_out[:, 1]
                        ).data.cpu().numpy().ravel()
         # add outputs
@@ -200,6 +200,8 @@ if __name__ == '__main__':
     pathToDatabase_train = []
     pathToDatabase_dev = []
 
+    eval_file = '_'.join(('RawNet2', config.Aug_strategy, config.Aug_type))
+
     for data_name, protocol_filename, data_type in zip(data_names, protocol_filenames, data_types):
 
         print(data_name)
@@ -220,7 +222,7 @@ if __name__ == '__main__':
 
                 eval_df_ls.append(evalprotcol)
 
-                # eval_ndx = evalprotcol
+                eval_file = '_'.join((eval_file, 'ITW'))
 
             elif db_type == 'asvspoof_eval_laundered':
                 pathToDatabase = os.path.join(db_folder, 'flac')
@@ -228,14 +230,20 @@ if __name__ == '__main__':
                 evalprotcol = pd.read_csv(evalProtocolFile, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
                 
                 # create a temporary protocol file, this file will be used by test.py
-                evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
-                evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+                # evalprotcol_tmp = evalprotcol.loc[evalprotcol['Laundering_Param'] == laundering_param]
+                # evalprotcol_tmp = evalprotcol_tmp[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
+                # evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
+                # evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
+
+                evalprotcol_tmp = evalprotcol[["Speaker_Id", "AUDIO_FILE_NAME", "SYSTEM_ID", "KEY"]]
                 evalprotcol_tmp.insert(loc=3, column="Not_Used_for_LA", value='-')
-                evalprotcol_tmp.to_csv(os.path.join(db_folder, 'protocols', protocol_filename.split('.')[0] + '_' 'tmp.txt'), header=False, index=False, sep=" ")
 
                 # filelist = evalprotcol_tmp["AUDIO_FILE_NAME"].to_list()
                 # evalprotcol = evalprotcol_tmp
                 eval_df_ls.append(evalprotcol_tmp)
+
+                # eval_file = '_'.join((eval_file, laundering_type, laundering_param))
+                eval_file = '_'.join((eval_file, 'eval_ASVSpoofLD_sampled'))
 
             elif db_type == 'asvspoof_eval':
                 pathToDatabase = os.path.join(db_folder, 'flac')
@@ -248,11 +256,13 @@ if __name__ == '__main__':
 
         elif data_type == 'train' or data_type == 'dev':
 
-            pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+            # pathToDatabase = os.path.join(db_folder, data_name, 'flac')
+            pathToDatabase = os.path.join(db_folder, data_name)
 
             protocol_file_path = os.path.join(db_folder, 'protocols', protocol_filename)
 
-            protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Laundering_Type", "Laundering_Param"])
+            # protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY", "Strategy", "Laundering_Type", "Laundering_Param"])
+            protocol_df = pd.read_csv(protocol_file_path, sep=' ', names=["Speaker_Id", "AUDIO_FILE_NAME", "Not_Used_For_LA", "SYSTEM_ID", "KEY"], usecols=range(5))
 
             # filelist = protocol_df["AUDIO_FILE_NAME"].to_list()
 
@@ -276,7 +286,10 @@ if __name__ == '__main__':
         dev_df = pd.concat(dev_df_ls)
         print(dev_df)
 
-    eval_out = os.path.join(config.score_dir, 'RawNet2_' + laundering_type + '_' + laundering_param + '_eval_CM_scores.txt')
+    if not os.path.exists(config.score_dir):
+        os.makedirs(config.score_dir)
+
+    eval_out = os.path.join(config.score_dir, eval_file + '_eval_CM_scores.txt')
 
     dir_yaml = os.path.splitext('model_config_RawNet')[0] + '.yaml'
 
@@ -305,13 +318,9 @@ if __name__ == '__main__':
     if args.comment:
         model_tag = model_tag + '_{}'.format(args.comment)
     model_save_path = os.path.join('models', model_tag)
-
-    # set model save directory
-    if not os.path.exists(model_save_path):
-        os.mkdir(model_save_path)
     
     #GPU device
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'                  
+    device = 'cuda:2' if torch.cuda.is_available() else 'cpu'                  
     print('Device: {}'.format(device))
     
     #model 
@@ -328,13 +337,16 @@ if __name__ == '__main__':
     #set Adam optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.weight_decay)
 
+    model_path = './models/model_LA_CCE_100_32_0.0001_AN_RES/epoch_94_0.511.pth'
+
+    # model_path = os.path.join(model_save_path, 'epoch_29_1.218.pth')
+
+    if model_path:
+        model.load_state_dict(torch.load(model_path,map_location=device))
+        print('Model loaded : {}'.format(model_path))
+
     #evaluation 
     if args.eval:
-
-        model_path = './models/pre_trained_DF_RawNet2.pth'
-        if model_path:
-            model.load_state_dict(torch.load(model_path,map_location=device))
-            print('Model loaded : {}'.format(model_path))
 
         # file_eval = genSpoof_list(dir_meta= eval_ndx, is_train=False, is_eval=True)
         file_eval = eval_df["AUDIO_FILE_NAME"].to_list()
@@ -344,6 +356,10 @@ if __name__ == '__main__':
         produce_evaluation_file(eval_set, model, device, eval_out)
         sys.exit(0)
 
+
+    # set model save directory
+    if not os.path.exists(model_save_path):
+        os.mkdir(model_save_path)
      
     # define train dataloader
 
@@ -385,7 +401,7 @@ if __name__ == '__main__':
     num_epochs = args.num_epochs
     writer = SummaryWriter('logs/{}'.format(model_tag))
     best_acc = 99
-    best_val_eer = 1.
+    best_val_eer = 1
 
     for epoch in range(num_epochs):
         running_loss, train_accuracy = train_epoch(train_loader, model, optimizer, device)
