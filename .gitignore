@@ -63,8 +63,9 @@ maildir
 logs*
 
 # large files
-*.png 
+*.png
 *.pkl
+*.pt
 *.pth
 
 # models
